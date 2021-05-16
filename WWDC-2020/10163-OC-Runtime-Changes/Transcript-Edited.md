@@ -1,17 +1,30 @@
 Hello and welcome to WWDC.
 Hi everyone, I’m Ben.
- I’m in the Languages and Runtimes team, and I’m going to talk to you about changes we’ve made this year in the Objective-C runtime in iOS and mac OS that significantly improve memory use.
- This talk is a little bit different to most.
- You shouldn’t need to change any of your code.
- I’m not going to talk about any new APIs to learn this year or deprecation warnings to squash.
- With any luck, you won’t need to do anything and your apps will just get faster.
-Why are we telling you about these improvements? Well, partly because we think they’re cool and interesting, but also because these kind of improvements in the runtime are only possible because our internal data structures are hidden behind APIs.
+
+I’m in the **Languages and Runtimes team**, and I’m going to talk to you about changes we’ve made this year in the **Objective-C runtime** in *iOS* and *macOS* that **significantly improve memory use**.
+ 
+This talk is a little bit different to most.
+ 
+You **shouldn’t need** to change any of your code.
+
+I’m not going to talk about any new *APIs* to learn this year or deprecation *warnings* to squash.
+
+**With any luck, you won’t need to do anything and your apps will just get faster.**
+ 
+Why are we telling you about these improvements? Well, partly because we think they’re cool and interesting, but also because **these kind of improvements in the runtime are only possible because our internal data structures are hidden behind APIs**.
+
 When apps access these data structures directly, things get a little crashy.
+
 In this talk you’ll learn a few things to watch out for that might happen when someone else working on your codebase, not you obviously, access things that they shouldn’t.
- We’re gonna cover three changes in this session.
- First, there’s a change in the data structures that the Objective-C runtime uses to track classes.
-Then we’ll take a look at changes to Objective-C method lists.
-Finally, we’ll look at a change in how tagged pointers are represented.
+
+We’re gonna cover **three changes** in this session.
+
+- First, there’s a change in the data structures that the **Objective-C runtime** uses to track classes.
+- Then we’ll take a look at changes to **Objective-C method lists**.
+- Finally, we’ll look at a change in how **tagged pointers** are represented.
+
+# 1
+
 So, let’s start off with changes to the runtime data for classes.
  On disk, in your application binary, classes look like this.
 First, there’s the class object itself, which contains the information that's most frequently accessed: pointers to the metaclass, superclass, and the method cache.
@@ -76,6 +89,9 @@ All of the information in these structures is available through official APIs.
 All of these APIs can be found in the Objective-C runtime documentation on developer.
 apple.
 com.
+
+# 2
+
 Next, let's dive a little deeper into these class data structures and take a look at another change, relative method lists.
 Every class has a list of methods attached to it.
 When you write a new method on a class, it gets added to the list.
@@ -147,6 +163,9 @@ So again, don't do that.
  Use the APIs.
 Those APIs keep working regardless of how things change underneath.
 For example, there are functions that, given a method pointer, return the values for its fields.
+
+# 3
+
 Let's explore one more change coming this year.
  A change to the tagged pointer format on arm64.
 First, we need to know what tagged pointers are.
@@ -227,6 +246,9 @@ Type checks like isKindOfClass worked on the old tagged pointer format, and they
 It's worth noting this also applies to CF types as well.
 We don't want to hide anything and we definitely don't want to break anybody's apps.
  When these details aren't exposed, it's just because we need to maintain the flexibility to make changes like this, and your apps will keep working just fine, as long as they don't rely on these internal details.
+
+# Summary
+
 So, let's wrap up.
  In this talk, we've seen a few of the behind-the-scenes improvements that have shrunk the overhead of our runtime, leaving more memory available to you and your users.
 You get these improvements without having to do anything except, maybe, consider raising your deployment target.
