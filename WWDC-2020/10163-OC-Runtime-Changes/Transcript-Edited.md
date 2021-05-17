@@ -1,3 +1,5 @@
+# https://developer.apple.com/videos/play/wwdc2020/10163/
+
 Hello and welcome to WWDC.
 Hi everyone, I’m Ben.
 
@@ -5,9 +7,9 @@ I’m in the **Languages and Runtimes team**, and I’m going to talk to you abo
  
 This talk is a little bit different to most.
  
-You **shouldn’t need** to change any of your code.
+You *shouldn’t need* to change any of your code.
 
-I’m not going to talk about any new *APIs* to learn this year or deprecation *warnings* to squash.
+I’m *not* going to talk about any *new APIs* to learn this year or *deprecation warnings* to squash.
 
 **With any luck, you won’t need to do anything and your apps will just get faster.**
  
@@ -19,7 +21,7 @@ In this talk you’ll learn a few things to watch out for that might happen when
 
 We’re gonna cover **three changes** in this session.
 
-- First, there’s a change in the data structures that the **Objective-C runtime** uses to track classes.
+- First, there’s a change in **the data structures that the Objective-C runtime uses to track classes**.
 - Then we’ll take a look at changes to **Objective-C method lists**.
 - Finally, we’ll look at a change in how **tagged pointers** are represented.
 
