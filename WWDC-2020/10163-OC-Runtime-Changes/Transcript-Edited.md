@@ -147,78 +147,159 @@ When you use these APIs to access this information, you know they'll keep workin
 
 All of these APIs can be found in the *Objective-C runtime documentation* on *developer.apple.com*.
 
-# 2
+# 2. Relative Method Lists
 
-Next, let's dive a little deeper into these class data structures and take a look at another change, relative method lists.
+Next, let's dive a little deeper into these class data structures and take a look at another change, **relative method lists**.
+
 Every class has a list of methods attached to it.
+
 When you write a new method on a class, it gets added to the list.
- The runtime uses these lists to resolve message sends.
+
+**The runtime uses these lists to resolve message sends.**
+
+## Method structure
+
 Each method contains three pieces of information.
-First is the method's name or selector.
- Selectors are strings, but they're unique so they can be compared using pointer equality.
-Next is the method's type encoding.
- This is a string that represents the parameter and return types, and it isn't used for sending messages, but it's needed for things like runtime introspection and message forwarding.
-Finally, there's a pointer to the method's implementation.
- The actual code for the method.
- When you write a method, it gets compiled into a C function with your implementation in it, and then the entry in the method list points to that function.
+
+- First is the **method's name** or **selector**.
+
+**Selectors are strings**, but **they're unique so they can be compared using pointer equality**.
+
+- Next is the method's **type encoding**.
+
+This is a string that represents the **parameter** and **return types**, and it **isn't used for sending messages**, but it's **needed for things like runtime introspection and message forwarding**.
+
+- Finally, there's a pointer to the **method's implementation**, The actual code for the method.
+
+When you write a method, it gets **compiled into a C function with your implementation** in it, and then the entry in the method list points to that function.
 Let's look at a single method.
- I've chosen the init method.
- It contains entries for the method name, types, and implementation.
-Each piece of data in the method list is a pointer.
-On our 64-bit systems, that means that each method table entry occupies 24 bytes.
-Now this is clean memory, but clean memory isn't free.
- It still has to be loaded from disk and occupies memory when it's in use.
+
+--
+
+I've chosen the `init` method.
+
+It contains entries for the **method name**, **types**, and **implementation**.
+
+**Each piece of data in the method list is a pointer.**
+
+On our **64-bit** systems, that means that each **method table entry** occupies **24 bytes**.
+
+Now this is **clean memory**, but clean memory isn't free.
+
+**It still has to be loaded from disk and occupies memory when it's in use.**
+
 Now here's a zoomed out view of the memory within a process.
- Note that it's not to scale.
+
+Note that it's not to scale.
+
 There's this big address space that requires 64 bits to address.
-Within that address space, various pieces are carved out for the stack, the heap, and the executables and libraries or binary images loaded into the process, shown here in blue.
-Let's zoom in and look at one of these binary images.
-Here, we show the three method table entries pointing into locations in their binary.
+
+Within that address space, various pieces are carved out for the **stack**, the **heap**, and the **executables** and **libraries** or **binary images** *loaded* into the *process*, shown here in *blue*.
+
+Let's zoom in and look at one of these **binary images**.
+
+Here, we show the three **method table entries** pointing into locations in their binary.
+
 This shows us another cost.
- A binary image can be loaded anywhere in memory depending on where the dynamic linker decides to place it.
-That means that the linker needs to resolve the pointers into the image and fix them up to point to their actual location in memory at load time, and that also has a cost.
- Now note that a class method entry from a binary only ever points to method implementations within that binary.
+
+A **binary image** can be **loaded anywhere in memory** depending on where the **dynamic linker** decides to place it.
+
+That means that the **linker** needs to **resolve the pointers into the image and fix them up to point to their actual location in memory at load time**, and that also has a cost.
+
+**Now note that a class method entry from a binary only ever points to method implementations within that binary.**
+
 There's no way to make a method that has its metadata in one binary and the code implementing it in another.
-That means that method list entries don't actually need to be able to refer to the entire 64-bit address space.
-They only ever need to be able to refer to functions within their own binary, and those will always be nearby.
-So, instead of an absolute 64-bit address, they can use a 32-bit relative offset within the binary.
- And that's a change that we've made this year.
+That means that method list entries don't actually need to be able to refer to the entire **64-bit** address space.
+
+**They only ever need to be able to refer to functions within their own binary, and those will always be nearby.**
+
+So, instead of an absolute **64-bit** address, they can use a **32-bit** *relative offset within the binary*.
+
+And that's a change that we've made this year.
+
+--
+
 This has several advantages.
-Firstly, the offsets are always the same no matter where the image is loaded into memory, so they don't have to be fixed up after they're loaded from disk.
-And because they don't need to be fixed up, they can be held in true read only memory, which is more secure.
-And, of course, 32-bit offsets mean that we've halved the amount of memory needed on 64-bit platforms.
-We've measured about 80MB of these methods system wide on a typical iPhone.
- Since they're half the size, we save 40 megabytes.
+
+- Firstly, **the offsets are always the same no matter where the image is loaded into memory**, so they don't have to be fixed up after they're loaded from disk.
+
+- And **because they don't need to be fixed up, they can be held in true read only memory, which is more secure**.
+
+- And, of course, **32-bit** offsets mean that we've **halved the amount of memory** needed on **64-bit** platforms.
+
+We've measured about **80MB** of these methods **system wide** on a typical iPhone.
+
+Since they're **half** the size, we **save 40 megabytes**.
+
 That's more memory your app can use to delight your users.
-But what about swizzling? The method lists in a binary can't now refer to the full address space, but if you swizzle a method, that can be implemented anywhere.
- And besides, we just said that we want to keep these method lists read only.
-To handle this, we also have a global table mapping methods to their swizzled implementations.
+
+--
+
+But what about **swizzling**? 
+
+The **method lists** in a **binary** can't now refer to the full address space, but if you swizzle a method, that can be implemented anywhere.
+
+And besides, we just said that we want to keep these method lists **read only**.
+
+To handle this, we also have **a global table mapping methods to their swizzled implementations**.
+
 Swizzling is rare.
- The vast majority of methods never actually get swizzled, so this table doesn't end up getting very big.
+
+The vast majority of methods never actually get swizzled, so this table doesn't end up getting very big.
+
 Even better, the table is compact.
- Memory is dirtied a page at a time.
- With the old style of method lists, swizzling a method would dirty the entire page it was on, resulting in many kilobytes of dirty memory for a single swizzle.
-With the table, we just pay the cost for an extra table entry.
+ 
+**Memory is dirtied a page at a time.**
+
+- With the old style of method lists, swizzling a method would dirty the entire page it was on, resulting in many kilobytes of dirty memory for a single swizzle.
+
+- With the table, we just pay the cost for an extra table entry.
+
 As always, these changes are invisible to you, and everything keeps working just like it always has.
-These relative method lists are supported on the new OS versions coming out later this year.
+
+These **relative method lists** are supported on the new OS versions coming out later this year.
+
+- macOS Big Sur
+- iOS 14
+- tvOS 14
+- watchOS 7
+
+--
+
 When you build with the corresponding minimum deployment target, the tools will automatically generate relative method lists in your binaries.
+
 If you need to target older OS versions still, not to worry.
+
 Xcode will generate the old style method list format as well, which is still fully supported.
-You still get the benefit from the OS itself being built with the new relative method lists, and the system has no problem with both formats in use in the same app at the same time.
-If you can target this year's OS releases though, you'll get smaller binaries and less memory usage.
-This is a generally good tip in Objective-C or Swift.
+
+You still get the benefit from the OS itself being built with the new **relative method lists**, and the system has no problem with both formats in use in the same app at the same time.
+
+If you can target this year's OS releases though, you'll get **smaller binaries** and **less memory usage**.
+
+This is a generally good tip in *Objective-C* or *Swift*.
+
 Minimum deployment targets aren't just about which SDK APIs are available to you.
-When Xcode knows that it doesn't need to support older OS versions, it can often emit better optimized code or data.
+
+**When Xcode knows that it doesn't need to support older OS versions, it can often emit better optimized code or data.**
+
 We understand that many of you need to support older OS versions, but this is a reason why it's a good idea to increase your deployment target whenever you can.
-Now, one thing to watch out for is building with a deployment target that's newer than the one you intend it to target Xcode usually prevents this, but it can slip through, especially if you're building your own libraries or frameworks elsewhere and then bringing them in.
-When running on an older OS, that older runtime will see these relative methods, but it doesn't know anything about them, so it will try to interpret them like the old style pointer-based methods.
-That means it will try to read a pair of 32-bit fields as a 64-bit pointer.
-The result is two integers being glued together as a pointer, which is a nonsense value that is certain to crash if it's actually used.
-You can recognize when this happens by a crash in the runtime reading method information, where the bad pointer looks like two 32-bit values smooshed together as in this example.
+
+Now, **one thing to watch out for is building with a deployment target that's newer than the one you intend it to target, Xcode usually prevents this, but it can slip through, especially if you're building your own libraries or frameworks elsewhere and then bringing them in**.
+
+When running on an older OS, that **older runtime will see these relative methods, but it doesn't know anything about them, so it will try to interpret them like the old style pointer-based methods**.
+
+That means **it will try to read a pair of 32-bit fields as a 64-bit pointer**.
+
+**The result is two integers being glued together as a pointer**, which is **a nonsense value** that is certain to **crash** if it's actually used.
+
+You can recognize when this happens by a crash in the runtime reading method information, where the bad pointer looks like **two 32-bit values smooshed together** as in this example.
+
 And if you're running code that digs through these structures to read out the values, that code will have the same problem as these older runtimes, and the app would crash when users upgraded their devices.
-So again, don't do that.
- Use the APIs.
+
+So again, don't do that. Use the APIs.
+
 Those APIs keep working regardless of how things change underneath.
+
 For example, there are functions that, given a method pointer, return the values for its fields.
 
 # 3
