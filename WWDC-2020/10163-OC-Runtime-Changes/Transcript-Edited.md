@@ -1,10 +1,15 @@
-# https://developer.apple.com/videos/play/wwdc2020/10163/
+# wwdc2020 / 10163
+
+https://developer.apple.com/videos/play/wwdc2020/10163/
+
+---
 
 Hello and welcome to WWDC.
+
 Hi everyone, I’m Ben.
 
 I’m in the **Languages and Runtimes team**, and I’m going to talk to you about changes we’ve made this year in the **Objective-C runtime** in *iOS* and *macOS* that **significantly improve memory use**.
- 
+
 This talk is a little bit different to most.
  
 You *shouldn’t need* to change any of your code.
@@ -35,13 +40,15 @@ On disk, in your application binary, classes look like this.
 
 First, there’s the **class object** itself, which contains the information that's most frequently accessed: **pointers to the metaclass, superclass, and the method cache**.
 
-It also has a pointer to more data where additional information is stored, called the `class_ro_t`. "**ro**" stands for **read only**.
+**It also has a pointer to more data where additional information is stored**, called the `class_ro_t`. "**ro**" stands for **read only**.
 
 And this includes things like the **class's name** and information about **methods**, **protocols**, and **instance variables**.
 
 *Swift classes* and *Objective-C classes* **share this infrastructure**, so each **Swift class has these data structures as well**.
 
 **When classes are first loaded from disk into memory, they start off like this too, but they change once they're used**.
+
+---
 
 Now, to understand what happens then, it’s useful to know about the difference between **clean memory** and **dirty memory**.
 
@@ -50,8 +57,6 @@ The `class_ro_t` is clean because it’s **read only**.
 
 - **Dirty memory** is memory that’s changed while the process is running.
 
-**When classes are first loaded from disk into memory, they start off like this too, but they change once they're used**.
-
 **For example, it creates a fresh method cache and points to it from the class.**
 
 - **Dirty memory** is much more expensive than clean memory.It has to be kept around for as long as the process is running.
@@ -59,6 +64,8 @@ The `class_ro_t` is clean because it’s **read only**.
 - **Clean memory**, on the other hand, can be evicted to make room for other things because you if you need it, the system can always just reload it from disk.
 
 *macOS* has the option to **swap out** dirty memory, but dirty memory is especially costly in *iOS* because it **doesn’t use swap**.
+
+---
 
 Dirty memory is the reason why this class data is split into two pieces.
 
@@ -174,7 +181,7 @@ This is a string that represents the **parameter** and **return types**, and it 
 When you write a method, it gets **compiled into a C function with your implementation** in it, and then the entry in the method list points to that function.
 Let's look at a single method.
 
---
+---
 
 I've chosen the `init` method.
 
@@ -217,7 +224,7 @@ So, instead of an absolute **64-bit** address, they can use a **32-bit** *relati
 
 And that's a change that we've made this year.
 
---
+---
 
 This has several advantages.
 
@@ -233,7 +240,7 @@ Since they're **half** the size, we **save 40 megabytes**.
 
 That's more memory your app can use to delight your users.
 
---
+---
 
 But what about **swizzling**? 
 
@@ -264,7 +271,7 @@ These **relative method lists** are supported on the new OS versions coming out 
 - tvOS 14
 - watchOS 7
 
---
+---
 
 When you build with the corresponding minimum deployment target, the tools will automatically generate relative method lists in your binaries.
 
