@@ -309,57 +309,116 @@ Those APIs keep working regardless of how things change underneath.
 
 For example, there are functions that, given a method pointer, return the values for its fields.
 
-# 3
+# 3 Presentation Changes of Tagged Pointer on ARM64
 
 Let's explore one more change coming this year.
- A change to the tagged pointer format on arm64.
-First, we need to know what tagged pointers are.
+
+A change to the **tagged pointer** format on **arm64**.
+
+---
+
+First, we need to know what **tagged pointers** are.
+
 We're gonna get really low-level here, but don't worry.
- Like everything else we've talked about, you don't need to know this.
- It's just interesting, and maybe helps you understand your memory usage a little better.
-Let's start by looking at the structure of a normal object pointer.
- Typically when we see these, they're printed as these big hexadecimal numbers.
- We saw some of these earlier.
-Let's break it out into the binary representation.
-We have 64 bits, however, we don't really use all of these bits.
-only these bits here in the middle are ever set in a real object pointer.
-The low bits are always zero because of alignment requirements.
- objects must always be located at an address that's a multiple of the pointer size.
-The high bits are always zero because the address space is limited.
- we don't actually go all the way up to two to the 64.
-These high and low bits are always zero.
+
+Like everything else we've talked about, you don't need to know this.
+
+It's just interesting, and maybe helps you understand your *memory usage* a little better.
+
+### About *Normal Object Pointer*
+ 
+Let's start by looking at the structure of a **normal object pointer**.
+
+Typically when we see these, they're printed as these big **hexadecimal** numbers.
+
+We saw some of these earlier.
+
+Let's break it out into the **binary representation**.
+
+We have **64 bits**, however, we don't really use all of these bits.
+
+only these bits here in the middle are ever set in a **real object pointer**.
+
+- The **low bits** are **always zero because of alignment requirements**.
+
+**objects must always be located at an address that's a multiple of the pointer size**.
+
+- The **high bits** are **always zero because the address space is limited**. we don't actually go all the way up to two to the **64** (2^64).
+
+**These high and low bits are always zero.**
+
+### About *Tagged Pointer*
+
 So, let's pick one of these bits that's always zero and make it a one.
-That can immediately tell us that this is not a real object pointer, and then we can assign some other meaning to all of the other bits.
-We call this a tagged pointer.
+
+That can immediately tell us that this is *not* a **real object pointer**, and then we can assign some other meaning to all of the other bits.
+
+We call this a **tagged pointer**.
+
 For example, we might stuff a numeric value into the other bits.
-As long as we were to teach NSNumber how to read those bits, and teach the runtime to handle the tagged pointers appropriately, the rest of the system can treat these things like object pointers and never know the difference.
-And this saves us the overhead of allocating a tiny number object for every case like this, which can be a significant win.
-Just a quick aside, these values are actually obfuscated by combining them with a randomized value that's initialized at process startup.
-This is a security measure that makes it difficult to forge a tagged pointer.
+
+As long as we were to teach `NSNumber` how to read those *bits*, and teach the *runtime* to handle the **tagged pointers** appropriately, the rest of the system can treat these things like object pointers and never know the difference.
+
+And this saves us the overhead of allocating a **tiny number object** for every case like this, which can be a significant win.
+
+### Tagged Pointer's value is obfuscated
+
+Just a quick aside, these values are actually **obfuscated by combining them with a randomized value that's initialized at process startup**.
+
+This is a **security measure** that **makes it difficult to forge a tagged pointer**.
+
 We'll ignore this for the rest of the discussion, since it's just an extra layer on top.
- Just be aware that if you actually try and look at these values in memory, they'll be scrambled.
-So, this is the full format of a tagged pointer on Intel The low bit is set to one to indicate that this is a tagged pointer.
-As we discussed, this bit must always be zero for a real pointer, so this allows us to tell them apart.
-The next three bits are the tag number.
- This indicates the type of the tagged pointer.
- For example, a three means it's an NSNumber, a six, that it's an NSDate.
-Since we have three tag bits, there are eight possible tag types.
-The rest of the bits are the payload.
- This is data that the particular type can use however it likes.
-For a tagged NSNumber, this is the actual number.
-Now, there's a special case for tag seven.
- This indicates an extended tag.
- An extended tag uses the next eight bits to encode the type, allowing for 256 more tag types at the cost of a smaller payload.
-This allows us to use tagged pointers for more types, as long as they can fit their data into a smaller space.
-This gets used for things like tagged UI colors or NSIndexSets.
-Now, if this seems really handy to you, you might be disappointed to hear that only the runtime maintainer, that is Apple, can add tagged pointer types.
-But if you're a Swift programmer, you'll be happy to know that you can create your own kinds of tagged pointers.
- If you've ever used an enum with an associated value that's a class, that's like a tagged pointer.
-The Swift runtime stores the enum discriminator in the spare bits of the associated value payload.
-What's more, Swift's use of value types actually makes tagged pointers less important, because values no longer need to be exactly pointer sized.
-For example, a Swift UUID type can be two words and held inline instead of allocating a separate object because it doesn't fit inside a pointer.
-Now that's tagged pointers on Intel.
- Let's have a look at ARM.
+
+Just be aware that if you actually try and look at these values in memory, they'll be scrambled.
+
+### Tagged Pointer on *Intel* Platform
+
+So, this is the full format of a tagged pointer on **Intel**. The low bit is set to **one** to indicate that this is a **tagged pointer**.
+
+As we discussed, this bit must always be **zero** for a **real pointer**, so this allows us to tell them apart.
+
+The **next three bits** are the **tag number**.
+
+This indicates the type of the **tagged pointer**.
+
+For example, a **three**(*0B011*) means it's an `NSNumber`, a **six**(*0B110*), that it's an `NSDate`.
+
+Since we have **three tag bits**, there are **eight possible tag types**.
+
+The rest of the bits are the **payload**.
+
+This is data that the particular type can use however it likes.
+
+For a **tagged NSNumber**, this is the actual number.
+
+Now, there's a **special case** for tag **seven**.
+
+This indicates an **extended tag**.
+
+An **extended tag** uses the **next eight bits** to encode the type, allowing for **256 more tag types** at the cost of a smaller *payload*.
+
+This allows us to use **tagged pointers** for more types, as long as they can fit their data into a smaller space.
+
+This gets used for things like **tagged UI colors** or **NSIndexSets**.
+
+### Tagged Pointer in *Swift*
+
+Now, if this seems really handy to you, you might be disappointed to hear that **only the runtime maintainer, that is Apple, can add tagged pointer types**. 
+**But if you're a Swift programmer, you'll be happy to know that you can create your own kinds of tagged pointers.**
+
+If you've ever used **an enum with an associated value that's a class, that's like a tagged pointer**.
+
+The *Swift runtime* **stores the enum discriminator in the spare bits of the associated value payload**.
+
+What's more, **Swift's use of value types actually makes tagged pointers less important, because values no longer need to be exactly pointer sized**.
+
+For example, a **Swift UUID type** can be two words and held **inline** instead of allocating a separate object because it doesn't fit inside a pointer.
+
+Now that's tagged pointers on *Intel*.
+
+### Tagged Pointer on *ARM64* Platform
+
+Let's have a look at ARM.
 On arm64, we've flipped things around.
 Instead of the bottom bit, the top bit is set to one to indicate a tagged pointer.
 Then the tag number comes in the next three bits, and then the payload uses the remaining bits.
