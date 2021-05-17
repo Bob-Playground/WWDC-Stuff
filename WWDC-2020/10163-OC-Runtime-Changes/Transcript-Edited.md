@@ -25,72 +25,127 @@ We’re gonna cover **three changes** in this session.
 - Then we’ll take a look at changes to **Objective-C method lists**.
 - Finally, we’ll look at a change in how **tagged pointers** are represented.
 
-# 1
+# 1. Class in Memory
 
-So, let’s start off with changes to the runtime data for classes.
- On disk, in your application binary, classes look like this.
-First, there’s the class object itself, which contains the information that's most frequently accessed: pointers to the metaclass, superclass, and the method cache.
-It also has a pointer to more data where additional information is stored, called the class_ro_t.
- "Ro" stands for read only.
- And this includes things like the class's name and information about methods, protocols, and instance variables.
-Swift classes and Objective-C classes share this infrastructure, so each Swift class has these data structures as well.
-When classes are first loaded from disk into memory, they start off like this too, but they change once they're used.
-Now, to understand what happens then, it’s useful to know about the difference between clean memory and dirty memory.
-Clean memory is memory that isn’t changed once it’s loaded.
-The class_ro_t is clean because it’s read only.
-Dirty memory is memory that’s changed while the process is running.
-The class structure is dirtied once the class gets used because the runtime writes new data into it.
- For example, it creates a fresh method cache and points to it from the class.
-Dirty memory is much more expensive than clean memory.
-It has to be kept around for as long as the process is running.
-Clean memory, on the other hand, can be evicted to make room for other things because you if you need it, the system can always just reload it from disk.
-macOS has the option to swap out dirty memory, but dirty memory is especially costly in iOS because it doesn’t use swap.
+So, let’s start off with changes to **the runtime data for classes**.
+
+## Clean memory & Dirty memory
+
+On disk, in your application binary, classes look like this.
+
+First, there’s the **class object** itself, which contains the information that's most frequently accessed: **pointers to the metaclass, superclass, and the method cache**.
+
+It also has a pointer to more data where additional information is stored, called the `class_ro_t`. "**ro**" stands for **read only**.
+
+And this includes things like the **class's name** and information about **methods**, **protocols**, and **instance variables**.
+
+*Swift classes* and *Objective-C classes* **share this infrastructure**, so each **Swift class has these data structures as well**.
+
+**When classes are first loaded from disk into memory, they start off like this too, but they change once they're used**.
+
+Now, to understand what happens then, it’s useful to know about the difference between **clean memory** and **dirty memory**.
+
+- **Clean memory** is memory that isn’t changed once it’s loaded.
+The `class_ro_t` is clean because it’s **read only**.
+
+- **Dirty memory** is memory that’s changed while the process is running.
+
+**When classes are first loaded from disk into memory, they start off like this too, but they change once they're used**.
+
+**For example, it creates a fresh method cache and points to it from the class.**
+
+- **Dirty memory** is much more expensive than clean memory.It has to be kept around for as long as the process is running.
+
+- **Clean memory**, on the other hand, can be evicted to make room for other things because you if you need it, the system can always just reload it from disk.
+
+*macOS* has the option to **swap out** dirty memory, but dirty memory is especially costly in *iOS* because it **doesn’t use swap**.
+
 Dirty memory is the reason why this class data is split into two pieces.
+
 The more data that can be kept clean, the better.
- By separating out data that never changes, that allows for most of the class data to be kept as clean memory.
+
+By separating out data that never changes, that allows for most of the class data to be kept as clean memory.
+
 This data is enough to get us started, but the runtime needs to track more information about each class.
- So, when a class first gets used, the runtime allocates additional storage for it.
-This runtime allocated storage is the class_rw_t, for read/write data.
-In this data structure, we store new information only generated at runtime.
-For example, all classes get linked into a tree structure using these First Subclass and Next Sibling Class pointers, and this allows the runtime to traverse all the classes currently in use, which is useful for invalidating method caches.
-But why do we have methods and properties here when they're in the read only data too? Well, because they can be changed at runtime.
- When a category is loaded, it can add new methods to the class, and the programmer can add them dynamically using runtime APIs.
-Since the class_ro_t is read only, we need to track these things in the class_rw_t.
+
+So, when a class first gets used, the runtime allocates additional storage for it.
+
+This runtime allocated storage is the `class_rw_t`, for **read/write** data.
+
+In this data structure, we **store new information only generated at runtime**.
+
+For example, all classes get linked into a tree structure using these **First Subclass** and **Next Sibling Class** pointers, and **this allows the runtime to traverse all the classes currently in use, which is useful for invalidating method caches**.
+
+But why do we have **methods** and **properties** here when they're in the read only data too? Well, because **they can be changed at runtime**.
+
+**When a category is loaded, it can add new methods to the class, and the programmer can add them dynamically using runtime APIs.**
+
+Since the `class_ro_t` is read only, we need to track these things in the `class_rw_t`.
+
 Now, it turns out that this takes up quite a bit of memory.
- There are a lot of classes in use in any given device.
- We measured about 30 megabytes of these class_rw_t structures across the system on an iPhone.
-So, how could we shrink these down? Remember we need these things in the read/write part because they can be changed at runtime.
-But examining usage on real devices, we found that only around 10% of classes ever actually have their methods changed.
-And this demangled name field is only used by Swift classes, and isn't even needed for Swift classes unless something asks for their Objective-C name.
-So, we can split off the parts that aren't usually used, and this cuts the size of the class_rw_t in half.
-For the classes that do need the additional information, we can allocate one of these extended records and slide it in for the class to use.
-Approximately 90% of classes never need this extended data, saving around 14 megabytes system wide.
+
+There are a lot of classes in use in any given device.
+
+We measured about **30 megabytes** of these `class_rw_t` structures **across the system on an iPhone**.
+
+So, how could we shrink these down? Remember we need these things in the **read/write** part because they can be changed at runtime.
+
+But examining usage on real devices, we found that only around **10%** of classes ever **actually have their methods changed**.
+
+And this `demangled` name field is only used by *Swift classes*, and **isn't even needed for Swift classes unless something asks for their Objective-C name**.
+
+So, we can split off the parts that aren't usually used, and this cuts the size of the `class_rw_t` in half.
+
+For the classes that do need the additional information, we can allocate one of these **extended records** and slide it in for the class to use.
+
+Approximately **90%** of classes **never need this extended data**, **saving** around **14 megabytes** *system wide*.
+
 This is memory that’s now available for more productive uses, like storing your app’s data.
- So, you can actually see the impact of this change yourself on your Mac by running some simple commands in the terminal.
- Let’s take a look at that now.
- I'm gonna go into the terminal on my MacBook here, and I'm gonna run a command that's available on any Mac, called heap.
- And it lets you inspect the heap memory in use by a running process.
-So, I'm gonna run it against the Mail app on my Mac.
- Now, if I just ran this, it would output thousands of lines showing every heap allocation made by Mail.
- So, instead I'm just gonna grep it for the types we've been talking about today.
-The class_rw_t types.
-And I'm also gonna search for the header.
-And from the results that come back, we can see that we're using about 9000 of these class_rw_t types in the Mail app, but only about a tenth of them, a little over 900, actually needed this extended information.
+
+## Measure: heap memory
+
+So, you can actually see the impact of this change yourself on your Mac by running some simple commands in the terminal.
+
+Let’s take a look at that now.
+
+I'm gonna go into the *terminal* on my *MacBook* here, and I'm gonna run a command that's available on any Mac, called `heap`.
+
+And it lets you inspect the **heap memory** in use by a *running process*.
+
+So, I'm gonna run it against the *Mail app* on my Mac.
+
+Now, if I just ran this, it would output thousands of lines showing every heap allocation made by Mail.
+
+So, instead I'm just gonna `grep` it for the types we've been talking about today, The `class_rw_t` types.
+
+And I'm also gonna search for the *header*.
+
+And from the results that come back, we can see that we're using about **9000** of these `class_rw_t` types in the Mail app, but only about **a tenth of them**, a little over **900**, actually needed this **extended information**.
+
 So, we can easily calculate the savings we've made by this change.
-This is the type that's halved in size.
-So, if we subtract from this number the amount of memory we've had to allocate to the extended types, we can see that we've saved about a quarter of a meg of data just for the Mail app.
-If we extend that system wide, that's a real savings in terms of dirty memory.
-Now, a lot of code that fetches data out of the class now has to deal with classes that both do and don't have this extended data.
+This is the type that's **halved** in size.
+
+So, if we subtract from this number the amount of memory we've had to allocate to the **extended types**, we can see that **we've saved about a quarter of a meg of data just for the Mail app**.
+
+**If we extend that system wide, that's a real savings in terms of dirty memory**.
+
+Now, a lot of code that fetches data out of the **class** now has to deal with classes that both do and don't have this extended data.
+
 Of course, the runtime handles all of that for you, and from the outside, everything just keeps working like it always did, just using less memory.
+
 This works because the code that reads these structures is all within the runtime, and it's updated at the same time.
-Sticking to these APIs is really important because any code that tried to access these data structures directly is going to stop working in this year's OS release since things have moved around, and that code won't know about the new layout.
-We saw some real code that broke due to these changes, and, in addition to your own code, watch out for external dependencies you might be bringing into your app that might be digging into these data structures without you realizing.
+
+Sticking to these APIs is really important because **any code that tried to access these data structures directly is going to stop working in this year's OS release** since things have moved around, and **that code won't know about the new layout**.
+
+We saw some real code that broke due to these changes, and, in addition to your own code, watch out for *external dependencies* you might be bringing into your app that might be digging into these data structures without you realizing.
+
 All of the information in these structures is available through official APIs.
- There are functions like class_getName and class_getSuperclass.
- When you use these APIs to access this information, you know they'll keep working no matter what we change behind the scenes.
-All of these APIs can be found in the Objective-C runtime documentation on developer.
-apple.
-com.
+
+There are functions like `class_getName` and `class_getSuperclass`.
+
+When you use these APIs to access this information, you know they'll keep working no matter what we change behind the scenes.
+
+All of these APIs can be found in the *Objective-C runtime documentation* on *developer.apple.com*.
 
 # 2
 
