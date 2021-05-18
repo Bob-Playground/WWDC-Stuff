@@ -325,7 +325,7 @@ Like everything else we've talked about, you don't need to know this.
 
 It's just interesting, and maybe helps you understand your *memory usage* a little better.
 
-### About *Normal Object Pointer*
+## About *Normal Object Pointer*
  
 Let's start by looking at the structure of a **normal object pointer**.
 
@@ -347,7 +347,7 @@ only these bits here in the middle are ever set in a **real object pointer**.
 
 **These high and low bits are always zero.**
 
-### About *Tagged Pointer*
+## About *Tagged Pointer*
 
 So, let's pick one of these bits that's always zero and make it a one.
 
@@ -361,7 +361,7 @@ As long as we were to teach `NSNumber` how to read those *bits*, and teach the *
 
 And this saves us the overhead of allocating a **tiny number object** for every case like this, which can be a significant win.
 
-### Tagged Pointer's value is obfuscated
+Tagged Pointer's value is obfuscated
 
 Just a quick aside, these values are actually **obfuscated by combining them with a randomized value that's initialized at process startup**.
 
@@ -371,7 +371,7 @@ We'll ignore this for the rest of the discussion, since it's just an extra layer
 
 Just be aware that if you actually try and look at these values in memory, they'll be scrambled.
 
-### Tagged Pointer on *Intel* Platform
+## Tagged Pointer on *Intel* Platform
 
 So, this is the full format of a tagged pointer on **Intel**. The low bit is set to **one** to indicate that this is a **tagged pointer**.
 
@@ -401,7 +401,7 @@ This allows us to use **tagged pointers** for more types, as long as they can fi
 
 This gets used for things like **tagged UI colors** or **NSIndexSets**.
 
-### Tagged Pointer in *Swift*
+## Tagged Pointer in *Swift*
 
 Now, if this seems really handy to you, you might be disappointed to hear that **only the runtime maintainer, that is Apple, can add tagged pointer types**. 
 **But if you're a Swift programmer, you'll be happy to know that you can create your own kinds of tagged pointers.**
@@ -416,47 +416,91 @@ For example, a **Swift UUID type** can be two words and held **inline** instead 
 
 Now that's tagged pointers on *Intel*.
 
-### Tagged Pointer on *ARM64* Platform
+## Tagged Pointer on *ARM64* Platform
 
-Let's have a look at ARM.
-On arm64, we've flipped things around.
-Instead of the bottom bit, the top bit is set to one to indicate a tagged pointer.
-Then the tag number comes in the next three bits, and then the payload uses the remaining bits.
-Why do we use the top bit to indicate a tagged pointer on ARM, instead of the bottom bit like we do on Intel? Well, it's actually a tiny optimization for objc_msgSend.
-We want the most common path in msgSend to be as fast as possible, and the most common path is for a normal pointer.
-We have two less common cases: tagged pointers and nil.
-It turns out that when we use the top bit, we can check for both of those with a single comparison, and this saves a conditional branch for the common case in msgSend compared to checking for nil and tagged pointers separately.
-Just like in Intel, we have a special case for tag seven, where the next eight bits are used as an extended tag, and then the remaining bits are used for the payload.
-Or that was actually the old format used in iOS 13.
- In this year's release, we're moving things around a bit.
- The tag bit stays at the top, because that msgSend optimization is still really useful.
-The tag number now moves to the bottom three bits.
-The extended tag, if in use, occupies the high eight bits following the tag bit.
-Why did we do this? Well, let's consider a normal pointer again.
-Our existing tools, like the dynamic linker, ignore the top eight bits of a pointer due to an ARM feature called Top Byte Ignore, and we'll put the extended tag in the Top Byte Ignore bits.
-For an aligned pointer, the bottom three bits are always zero, but we can fiddle with that just by adding a small number to the pointer.
-We'll add seven to set the low bits to one.
- Remember, seven is the indication that this is an extended tag.
+Let's have a look at **ARM**.
+
+### iOS 13 and Before
+
+On **arm64**, we've *flipped* things around.
+
+Instead of the *bottom bit*, the *top bit* is set to **one** to indicate a **tagged pointer**.
+
+Then the **tag number** comes in the **next three bits**, and then the **payload** uses the remaining bits.
+
+Why do we use the *top bit* to indicate a **tagged pointer** on **ARM**, instead of the *bottom bit* like we do on *Intel*? Well, it's actually **a tiny optimization** for `objc_msgSend`.
+
+We want the most common path in `msgSend` to be as fast as possible, and **the most common path is for a normal pointer**.
+
+**We have two less common cases: tagged pointers and nil.**
+
+It turns out that when we use the *top bit*, we can check for both of those with a single comparison, and this saves a *conditional branch* for the common case in `msgSend` compared to checking for **nil** and **tagged pointers** separately.
+
+Just like in *Intel*, we have a special case for tag **seven**, where the **next eight bits** are used as an **extended tag**, and then the remaining bits are used for the **payload**.
+
+Or that was actually the old format used in *iOS 13*.
+
+### `iOS 14`'s Change
+
+In this year's release, we're moving things around a bit.
+
+The **tag bit** stays at the top, because that **msgSend optimization** is still really useful.
+
+The **tag number** now moves to the **bottom three bits**.
+
+The **extended tag**, if in use, occupies the **high eight bits** following the tag bit.
+
+Why did we do this? 
+
+Well, let's consider a **normal pointer** again.
+
+Our existing tools, like the **dynamic linker**, ignore the top eight bits of a pointer due to an **ARM feature** called **Top Byte Ignore**, and we'll put the **extended tag** in the **Top Byte Ignore bits**.
+
+For an **aligned pointer**, the **bottom three bits** are always zero, but we can fiddle with that just by adding a small number to the pointer.
+
+We'll add **seven** to set the **low bits** to one.
+
+Remember, **seven** is the indication that this is an extended tag.
+
 And that means we can actually fit this pointer above into an extended tag pointer payload.
-The result is a tagged pointer with a normal pointer in its payload.
-Why is that useful? Well, it opens up the ability for a tagged pointer to refer to constant data in your binary such as strings or other data structures that would otherwise have to occupy dirty memory.
+
+The result is a tagged pointer with a normal pointer in its payload. 
+Why is that useful? 
+
+Well, **it opens up the ability for a tagged pointer to refer to constant data** in your binary such as **strings** or other data structures that would otherwise have to occupy **dirty memory**.
+
+---
+
 Now, of course, these changes mean that code, which accesses these bits directly, will no longer work when iOS 14 is released later this year.
+
 A bitwise check like this would've worked in the past, but it'll give you the wrong answer on future OSs, and your app will start mysteriously corrupting user data.
+
 So, don't use code that relies on anything we've just talked about.
- Instead, you can probably guess what I'm gonna say, which is use the APIs.
-Type checks like isKindOfClass worked on the old tagged pointer format, and they'll continue to work on the new tagged pointer format.
- All NSString or NSNumber methods just keep on working.
- All of the information in these tagged pointers can be retrieved through the standard APIs.
-It's worth noting this also applies to CF types as well.
+
+Instead, you can probably guess what I'm gonna say, which is use the APIs.
+
+Type checks like `isKindOfClass` worked on the **old tagged pointer format**, and they'll continue to work on the **new tagged pointer format**.
+
+All `NSString` or `NSNumber` methods just keep on working.
+
+All of the information in these **tagged pointers** can be retrieved through the standard APIs.
+
+It's worth noting this also applies to **CF types** as well.
+
 We don't want to hide anything and we definitely don't want to break anybody's apps.
- When these details aren't exposed, it's just because we need to maintain the flexibility to make changes like this, and your apps will keep working just fine, as long as they don't rely on these internal details.
+
+When these details aren't exposed, it's just because we need to maintain the flexibility to make changes like this, and your apps will keep working just fine, as long as they *don't* rely on these **internal details**.
 
 # Summary
 
 So, let's wrap up.
- In this talk, we've seen a few of the behind-the-scenes improvements that have shrunk the overhead of our runtime, leaving more memory available to you and your users.
-You get these improvements without having to do anything except, maybe, consider raising your deployment target.
+
+In this talk, we've seen a few of the *behind-the-scenes* improvements that have shrunk the overhead of our runtime, leaving more memory available to you and your users.
+
+You get these improvements *without* having to do anything except, maybe, consider raising your deployment target.
+
 To help us make these improvements each year, just follow a simple rule.
-Don't read internal bits directly.
- Use the APIs.
+
+**Don't read internal bits directly. Use the APIs.**
+
 Thanks for watching, and enjoy your faster devices.
