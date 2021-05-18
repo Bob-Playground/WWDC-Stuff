@@ -1,4 +1,4 @@
-# wwdc2020 / 10163
+# WWDC 2020 / 10163
 
 https://developer.apple.com/videos/play/wwdc2020/10163/
 
