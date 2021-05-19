@@ -2,6 +2,13 @@
 
 https://developer.apple.com/videos/play/wwdc2020/10163/
 
+supported OS versions
+
+- macOS Big Sur
+- iOS 14
+- tvOS 14
+- watchOS 7
+
 ---
 
 Hello and welcome to WWDC.
@@ -21,6 +28,8 @@ I’m *not* going to talk about any *new APIs* to learn this year or *deprecatio
 Why are we telling you about these improvements? Well, partly because we think they’re cool and interesting, but also because **these kind of improvements in the runtime are only possible because our internal data structures are hidden behind APIs**.
 
 When apps access these data structures directly, things get a little crashy.
+
+---
 
 In this talk you’ll learn a few things to watch out for that might happen when someone else working on your codebase, not you obviously, access things that they shouldn’t.
 
@@ -83,6 +92,8 @@ In this data structure, we **store new information only generated at runtime**.
 
 For example, all classes get linked into a tree structure using these **First Subclass** and **Next Sibling Class** pointers, and **this allows the runtime to traverse all the classes currently in use, which is useful for invalidating method caches**.
 
+---
+
 But why do we have **methods** and **properties** here when they're in the read only data too? Well, because **they can be changed at runtime**.
 
 **When a category is loaded, it can add new methods to the class, and the programmer can add them dynamically using runtime APIs.**
@@ -95,13 +106,17 @@ There are a lot of classes in use in any given device.
 
 We measured about **30 megabytes** of these `class_rw_t` structures **across the system on an iPhone**.
 
-So, how could we shrink these down? Remember we need these things in the **read/write** part because they can be changed at runtime.
+---
+
+So, how could we shrink these down? 
+
+Remember we need these things in the **read/write** part because they can be changed at runtime.
 
 But examining usage on real devices, we found that only around **10%** of classes ever **actually have their methods changed**.
 
 And this `demangled` name field is only used by *Swift classes*, and **isn't even needed for Swift classes unless something asks for their Objective-C name**.
 
-So, we can split off the parts that aren't usually used, and this cuts the size of the `class_rw_t` in half.
+So, we can split off the parts that aren't usually used, and this cuts the size of the `class_rw_t` in **half**.
 
 For the classes that do need the additional information, we can allocate one of these **extended records** and slide it in for the class to use.
 
@@ -127,6 +142,8 @@ So, instead I'm just gonna `grep` it for the types we've been talking about toda
 
 And I'm also gonna search for the *header*.
 
+---
+
 And from the results that come back, we can see that we're using about **9000** of these `class_rw_t` types in the Mail app, but only about **a tenth of them**, a little over **900**, actually needed this **extended information**.
 
 So, we can easily calculate the savings we've made by this change.
@@ -136,11 +153,15 @@ So, if we subtract from this number the amount of memory we've had to allocate t
 
 **If we extend that system wide, that's a real savings in terms of dirty memory**.
 
+## Don't rely on internal data structures，use APIs
+
 Now, a lot of code that fetches data out of the **class** now has to deal with classes that both do and don't have this extended data.
 
 Of course, the runtime handles all of that for you, and from the outside, everything just keeps working like it always did, just using less memory.
 
 This works because the code that reads these structures is all within the runtime, and it's updated at the same time.
+
+---
 
 Sticking to these APIs is really important because **any code that tried to access these data structures directly is going to stop working in this year's OS release** since things have moved around, and **that code won't know about the new layout**.
 
@@ -203,6 +224,8 @@ There's this big address space that requires 64 bits to address.
 
 Within that address space, various pieces are carved out for the **stack**, the **heap**, and the **executables** and **libraries** or **binary images** *loaded* into the *process*, shown here in *blue*.
 
+## Method List in Binary Images
+
 Let's zoom in and look at one of these **binary images**.
 
 Here, we show the three **method table entries** pointing into locations in their binary.
@@ -224,7 +247,7 @@ So, instead of an absolute **64-bit** address, they can use a **32-bit** *relati
 
 And that's a change that we've made this year.
 
----
+## Advantages of Relative Method Lists 
 
 This has several advantages.
 
@@ -240,7 +263,7 @@ Since they're **half** the size, we **save 40 megabytes**.
 
 That's more memory your app can use to delight your users.
 
----
+## Swizzling for Relative Method Lists
 
 But what about **swizzling**? 
 
@@ -266,12 +289,7 @@ As always, these changes are invisible to you, and everything keeps working just
 
 These **relative method lists** are supported on the new OS versions coming out later this year.
 
-- macOS Big Sur
-- iOS 14
-- tvOS 14
-- watchOS 7
-
----
+## About Deployment Target
 
 When you build with the corresponding minimum deployment target, the tools will automatically generate relative method lists in your binaries.
 
@@ -300,6 +318,8 @@ That means **it will try to read a pair of 32-bit fields as a 64-bit pointer**.
 **The result is two integers being glued together as a pointer**, which is **a nonsense value** that is certain to **crash** if it's actually used.
 
 You can recognize when this happens by a crash in the runtime reading method information, where the bad pointer looks like **two 32-bit values smooshed together** as in this example.
+
+## Don't rely on internal data structures，use APIs
 
 And if you're running code that digs through these structures to read out the values, that code will have the same problem as these older runtimes, and the app would crash when users upgraded their devices.
 
@@ -469,7 +489,7 @@ Why is that useful?
 
 Well, **it opens up the ability for a tagged pointer to refer to constant data** in your binary such as **strings** or other data structures that would otherwise have to occupy **dirty memory**.
 
----
+## Don't rely on internal data structures，use APIs
 
 Now, of course, these changes mean that code, which accesses these bits directly, will no longer work when iOS 14 is released later this year.
 
