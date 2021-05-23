@@ -193,13 +193,14 @@ Each method contains three pieces of information.
 
 **Selectors are strings**, but **they're unique so they can be compared using pointer equality**.
 
-- Next is the method's **type encoding**.
+- Next is the **method's type encoding**.
 
 This is a string that represents the **parameter** and **return types**, and it **isn't used for sending messages**, but it's **needed for things like runtime introspection and message forwarding**.
 
 - Finally, there's a pointer to the **method's implementation**, The actual code for the method.
 
 When you write a method, it gets **compiled into a C function with your implementation** in it, and then the entry in the method list points to that function.
+
 Let's look at a single method.
 
 ---
