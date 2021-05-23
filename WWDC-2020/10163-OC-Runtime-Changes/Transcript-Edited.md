@@ -2,13 +2,6 @@
 
 https://developer.apple.com/videos/play/wwdc2020/10163/
 
-supported OS versions
-
-- macOS Big Sur
-- iOS 14
-- tvOS 14
-- watchOS 7
-
 ---
 
 Hello and welcome to WWDC.
@@ -29,6 +22,13 @@ Why are we telling you about these improvements? Well, partly because we think t
 
 When apps access these data structures directly, things get a little crashy.
 
+supported OS versions:  
+
+- macOS Big Sur
+- iOS 14
+- tvOS 14
+- watchOS 7
+
 ---
 
 In this talk you’ll learn a few things to watch out for that might happen when someone else working on your codebase, not you obviously, access things that they shouldn’t.
@@ -43,7 +43,7 @@ We’re gonna cover **three changes** in this session.
 
 So, let’s start off with changes to **the runtime data for classes**.
 
-## Clean memory & Dirty memory
+## class object & class_ro_t
 
 On disk, in your application binary, classes look like this.
 
@@ -57,7 +57,7 @@ And this includes things like the **class's name** and information about **metho
 
 **When classes are first loaded from disk into memory, they start off like this too, but they change once they're used**.
 
----
+## Clean memory & Dirty memory
 
 Now, to understand what happens then, it’s useful to know about the difference between **clean memory** and **dirty memory**.
 
