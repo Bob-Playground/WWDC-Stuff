@@ -94,7 +94,9 @@ For example, all classes get linked into a tree structure using these **First Su
 
 ---
 
-But why do we have **methods** and **properties** here when they're in the read only data too? Well, because **they can be changed at runtime**.
+But why do we have **methods** and **properties** here when they're in the read only data too? 
+
+Well, because **they can be changed at runtime**.
 
 **When a category is loaded, it can add new methods to the class, and the programmer can add them dynamically using runtime APIs.**
 
