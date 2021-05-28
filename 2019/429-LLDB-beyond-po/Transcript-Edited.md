@@ -1,12 +1,48 @@
-Hello, my name is Davide and I am an engineer on the Debugging Technologies Team at Apple. I'm here with my colleague Jonas. You might be familiar with po, a way to print variables in LLDB. Today, we will talk about it and how it works. We will also present other ways to look at the variables in your source code together with powerful mechanisms to format the output. LLDB is the debugger that powers the variable view in Xcode.
+# WWDC 2019 / 429
 
-You can see the variables you define and their types there. While debugging in Xcode, you can also directly send commands and interact with LLDB through the console in the bottom right of the window. This includes the ability to print the values of the variables to defining your source code while you're investigating a bug in your application. LLDB offer several ways to accomplish this task. Each of which comes with a different set of trade-offs. Let's look at them. As an example, suppose we have a struct that represents a Trip, consisting of a name and a list of destinations. Let's go on a cruise around the Mediterranean.
+https://developer.apple.com/videos/play/wwdc2019/429/
 
-The first command we are going to explore is po, which you can think as of standing for print object description. When we use this command, what we get in return is the object description which is a textual representation of an instance of your type. The system runtime provides a default one but it's possible to customize it. We can do this by adding a conformance to the CustomDebugStringConvertible protocol. This requires having a single property called the debugDescription.
+---
 
-Now, if we print the object description in the debugger, we'll see the description we provided instead of the default one. The change only affects the top-level description. If you need to modify the substructure, check the documentation for the CustomerReflectable protocol. This can also be done for Objective-C objects by implementing the description method.
+Hello, my name is Davide and I am an engineer on the **Debugging Technologies Team** at Apple. 
 
-But po does more than just print variables. For example, you can take the name of our cruise and compute an uppercase version of it or get an alphabetically sorted array of the cruise destinations. In general, it can evaluate arbitrary expressions. So, anything that would compile at a given prompt in the program can be passed as an argument to the comment.
+I'm here with my colleague Jonas.
+
+You might be familiar with `po`, a way to print variables in *LLDB*. Today, we will talk about it and how it works. 
+
+We will also present other ways to look at the variables in your source code together with powerful mechanisms to format the output. 
+
+*LLDB* is the debugger that powers the *variable view* in *Xcode*.
+
+You can see the variables you define and their types there. 
+
+While debugging in *Xcode*, you can also directly send **commands** and interact with *LLDB* through the *console* in the bottom right of the window. 
+
+This includes the ability to print the values of the variables to defining your source code while you're investigating a bug in your application. 
+
+*LLDB* offer several ways to accomplish this task. Each of which comes with a different set of trade-offs. 
+
+Let's look at them. 
+
+As an example, suppose we have a `struct` that represents a `Trip`, consisting of a `name` and a list of `destinations`. Let's go on a `cruise` around the *Mediterranean*.
+
+# po
+
+The first command we are going to explore is `po`, which you can think as of standing for **print object description**. 
+
+When we use this command, what we get in return is the **object description** which is a **textual representation of an instance of your type**. 
+
+The system runtime provides a default one but it's possible to **customize** it. We can do this by adding a conformance to the `CustomDebugStringConvertible` protocol. This requires having a single property called the `debugDescription`.
+
+Now, if we print the object description in the debugger, we'll see the description we provided instead of the default one. 
+
+The change only affects the top-level description. If you need to modify the substructure, check the documentation for the `CustomerReflectable` protocol. This can also be done for *Objective-C* objects by implementing the `description` method.
+
+But `po` does more than just print variables. For example, you can take the name of our `cruise` and compute an uppercase version of it or get an alphabetically sorted array of the cruise destinations. 
+
+In general, it can **evaluate arbitrary expressions**. 
+
+So, anything that would compile at a given prompt in the program can be passed as an argument to the comment.
 
 In fact, po is actually an alias for a command called expression with an argument for printing the object description. LECC and LLDB are a convenient way to save keystrokes. If you wanted to implement po yourself, for example, you could use command alias. Specify your own command name as the first argument, and then follow with the command you want to alias. Once that's defined, you can use it like any other commands in LLDB.
 
