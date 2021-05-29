@@ -312,6 +312,8 @@ Minimum deployment targets aren't just about which SDK APIs are available to you
 
 We understand that many of you need to support older OS versions, but this is a reason why it's a good idea to increase your deployment target whenever you can.
 
+---
+
 Now, **one thing to watch out for is building with a deployment target that's newer than the one you intend it to target, Xcode usually prevents this, but it can slip through, especially if you're building your own libraries or frameworks elsewhere and then bringing them in**.
 
 When running on an older OS, that **older runtime will see these relative methods, but it doesn't know anything about them, so it will try to interpret them like the old style pointer-based methods**.

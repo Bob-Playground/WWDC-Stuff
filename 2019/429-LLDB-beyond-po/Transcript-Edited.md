@@ -4,9 +4,7 @@ https://developer.apple.com/videos/play/wwdc2019/429/
 
 ---
 
-Hello, my name is Davide and I am an engineer on the **Debugging Technologies Team** at Apple. 
-
-I'm here with my colleague Jonas.
+Hello, my name is Davide and I am an engineer on the **Debugging Technologies Team** at Apple. I'm here with my colleague Jonas.
 
 You might be familiar with `po`, a way to print variables in *LLDB*. Today, we will talk about it and how it works. 
 
