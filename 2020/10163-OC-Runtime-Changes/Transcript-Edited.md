@@ -292,7 +292,7 @@ As always, these changes are invisible to you, and everything keeps working just
 
 These **relative method lists** are supported on the new OS versions coming out later this year.
 
-## About Deployment Target
+## Deployment Target
 
 When you build with the corresponding minimum deployment target, the tools will automatically generate relative method lists in your binaries.
 
@@ -312,7 +312,7 @@ Minimum deployment targets aren't just about which SDK APIs are available to you
 
 We understand that many of you need to support older OS versions, but this is a reason why it's a good idea to increase your deployment target whenever you can.
 
----
+## Mismatched deployment targets
 
 Now, **one thing to watch out for is building with a deployment target that's newer than the one you intend it to target, Xcode usually prevents this, but it can slip through, especially if you're building your own libraries or frameworks elsewhere and then bringing them in**.
 
