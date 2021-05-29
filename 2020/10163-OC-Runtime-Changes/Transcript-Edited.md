@@ -296,15 +296,11 @@ These **relative method lists** are supported on the new OS versions coming out 
 
 When you build with the corresponding minimum deployment target, the tools will automatically generate relative method lists in your binaries.
 
-If you need to target older OS versions still, not to worry.
-
-Xcode will generate the old style method list format as well, which is still fully supported.
+If you need to target older OS versions still, not to worry. Xcode will generate the old style method list format as well, which is still fully supported.
 
 You still get the benefit from the OS itself being built with the new **relative method lists**, and the system has no problem with both formats in use in the same app at the same time.
 
-If you can target this year's OS releases though, you'll get **smaller binaries** and **less memory usage**.
-
-This is a generally good tip in *Objective-C* or *Swift*.
+If you can target this year's OS releases though, you'll get **smaller binaries** and **less memory usage**. This is a generally good tip in *Objective-C* or *Swift*.
 
 Minimum deployment targets aren't just about which SDK APIs are available to you.
 
