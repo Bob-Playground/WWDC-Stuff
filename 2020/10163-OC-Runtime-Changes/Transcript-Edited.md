@@ -330,7 +330,7 @@ Those APIs keep working regardless of how things change underneath.
 
 For example, there are functions that, given a method pointer, return the values for its fields.
 
-# 3 Presentation Changes of Tagged Pointer on ARM64
+# 3. Presentation Changes of Tagged Pointer on ARM64
 
 Let's explore one more change coming this year.
 
@@ -360,9 +360,7 @@ We have **64 bits**, however, we don't really use all of these bits.
 
 only these bits here in the middle are ever set in a **real object pointer**.
 
-- The **low bits** are **always zero because of alignment requirements**.
-
-**objects must always be located at an address that's a multiple of the pointer size**.
+- The **low bits** are **always zero because of alignment requirements. objects must always be located at an address that's a multiple of the pointer size**.
 
 - The **high bits** are **always zero because the address space is limited**. we don't actually go all the way up to two to the **64** (2^64).
 
@@ -382,10 +380,7 @@ As long as we were to teach `NSNumber` how to read those *bits*, and teach the *
 
 And this saves us the overhead of allocating a **tiny number object** for every case like this, which can be a significant win.
 
-Tagged Pointer's value is obfuscated
-
-Just a quick aside, these values are actually **obfuscated by combining them with a randomized value that's initialized at process startup**.
-
+Tagged Pointer's value is obfuscated. Just a quick aside, these values are actually **obfuscated by combining them with a randomized value that's initialized at process startup**. 
 This is a **security measure** that **makes it difficult to forge a tagged pointer**.
 
 We'll ignore this for the rest of the discussion, since it's just an extra layer on top.
