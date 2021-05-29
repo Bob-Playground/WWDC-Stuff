@@ -368,7 +368,7 @@ only these bits here in the middle are ever set in a **real object pointer**.
 
 **These high and low bits are always zero.**
 
-## About *Tagged Pointer*
+## Tagged Pointer on *Intel* Platform
 
 So, let's pick one of these bits that's always zero and make it a one.
 
@@ -392,9 +392,9 @@ We'll ignore this for the rest of the discussion, since it's just an extra layer
 
 Just be aware that if you actually try and look at these values in memory, they'll be scrambled.
 
-## Tagged Pointer on *Intel* Platform
-
 So, this is the full format of a tagged pointer on **Intel**. The low bit is set to **one** to indicate that this is a **tagged pointer**.
+
+---
 
 As we discussed, this bit must always be **zero** for a **real pointer**, so this allows us to tell them apart.
 
