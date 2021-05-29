@@ -383,9 +383,7 @@ And this saves us the overhead of allocating a **tiny number object** for every 
 Tagged Pointer's value is obfuscated. Just a quick aside, these values are actually **obfuscated by combining them with a randomized value that's initialized at process startup**. 
 This is a **security measure** that **makes it difficult to forge a tagged pointer**.
 
-We'll ignore this for the rest of the discussion, since it's just an extra layer on top.
-
-Just be aware that if you actually try and look at these values in memory, they'll be scrambled.
+We'll ignore this for the rest of the discussion, since it's just an extra layer on top. Just be aware that if you actually try and look at these values in memory, they'll be scrambled.
 
 So, this is the full format of a tagged pointer on **Intel**. The low bit is set to **one** to indicate that this is a **tagged pointer**.
 
@@ -393,23 +391,16 @@ So, this is the full format of a tagged pointer on **Intel**. The low bit is set
 
 As we discussed, this bit must always be **zero** for a **real pointer**, so this allows us to tell them apart.
 
-The **next three bits** are the **tag number**.
-
-This indicates the type of the **tagged pointer**.
+The **next three bits** are the **tag number**. This indicates the type of the **tagged pointer**.
 
 For example, a **three**(*0B011*) means it's an `NSNumber`, a **six**(*0B110*), that it's an `NSDate`.
 
 Since we have **three tag bits**, there are **eight possible tag types**.
 
 The rest of the bits are the **payload**.
+ This is data that the particular type can use however it likes. For a **tagged NSNumber**, this is the actual number.
 
-This is data that the particular type can use however it likes.
-
-For a **tagged NSNumber**, this is the actual number.
-
-Now, there's a **special case** for tag **seven**.
-
-This indicates an **extended tag**.
+Now, there's a **special case** for tag **seven**. This indicates an **extended tag**.
 
 An **extended tag** uses the **next eight bits** to encode the type, allowing for **256 more tag types** at the cost of a smaller *payload*.
 
