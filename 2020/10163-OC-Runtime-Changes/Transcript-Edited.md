@@ -74,7 +74,7 @@ The `class_ro_t` is clean because it’s **read only**.
 
 *macOS* has the option to **swap out** dirty memory, but dirty memory is especially costly in *iOS* because it **doesn’t use swap**.
 
----
+## class_rw_ext_t
 
 Dirty memory is the reason why this class data is split into two pieces.
 
@@ -455,7 +455,7 @@ The **tag bit** stays at the top, because that **msgSend optimization** is still
 
 The **tag number** now moves to the **bottom three bits**.
 
-The **extended tag**, if in use, occupies the **high eight bits** following the tag bit.
+The **extended tag**, if in use, occupies the **high eight bits** following the **tag bit**.
 
 Why did we do this? 
 
@@ -465,13 +465,9 @@ Our existing tools, like the **dynamic linker**, ignore the top eight bits of a 
 
 For an **aligned pointer**, the **bottom three bits** are always zero, but we can fiddle with that just by adding a small number to the pointer.
 
-We'll add **seven** to set the **low bits** to one.
+We'll add **seven** to set the **low bits** to one ( 7 -> 0B111 ). Remember, **seven** is the indication that this is an **extended tag**.
 
-Remember, **seven** is the indication that this is an extended tag.
-
-And that means we can actually fit this pointer above into an extended tag pointer payload.
-
-The result is a tagged pointer with a normal pointer in its payload. 
+And that means we can actually fit this pointer above into an **extended tag pointer** payload. **The result is a tagged pointer with a normal pointer in its payload.** 
 Why is that useful? 
 
 Well, **it opens up the ability for a tagged pointer to refer to constant data** in your binary such as **strings** or other data structures that would otherwise have to occupy **dirty memory**.
