@@ -4,9 +4,39 @@ https://developer.apple.com/videos/play/wwdc2020/10163/
 
 ---
 
-Hello and welcome to WWDC.
+- [WWDC 2020 / 10163](#wwdc-2020--10163)
+- [Overview](#overview)
+- [1. Class in Memory](#1-class-in-memory)
+  - [class object & class_ro_t](#class-object--class_ro_t)
+  - [Clean memory & Dirty memory](#clean-memory--dirty-memory)
+  - [class_rw_ext_t](#class_rw_ext_t)
+  - [Measure: heap memory](#measure-heap-memory)
+  - [Don't rely on internal data structures，use APIs](#dont-rely-on-internal-data-structuresuse-apis)
+- [2. Relative Method Lists](#2-relative-method-lists)
+  - [Method structure](#method-structure)
+  - [Method List in Binary Images](#method-list-in-binary-images)
+  - [Advantages of Relative Method Lists](#advantages-of-relative-method-lists)
+  - [Swizzling for Relative Method Lists](#swizzling-for-relative-method-lists)
+  - [Deployment Target](#deployment-target)
+  - [Mismatched deployment targets](#mismatched-deployment-targets)
+  - [Don't rely on internal data structures，use APIs](#dont-rely-on-internal-data-structuresuse-apis-1)
+- [3. Presentation Changes of Tagged Pointer on ARM64](#3-presentation-changes-of-tagged-pointer-on-arm64)
+  - [About *Normal Object Pointer*](#about-normal-object-pointer)
+  - [Tagged Pointer on *Intel* Platform](#tagged-pointer-on-intel-platform)
+  - [Tagged Pointer in *Swift*](#tagged-pointer-in-swift)
+  - [Tagged Pointer on *ARM64* Platform](#tagged-pointer-on-arm64-platform)
+    - [iOS 13 and Before](#ios-13-and-before)
+    - [iOS 14 's Change](#ios-14-s-change)
+  - [Don't rely on internal data structures，use APIs](#dont-rely-on-internal-data-structuresuse-apis-2)
+- [Summary](#summary)
+
+---
+
+Hello and welcome to WWDC. 
 
 Hi everyone, I’m Ben.
+
+# Overview
 
 I’m in the **Languages and Runtimes team**, and I’m going to talk to you about changes we’ve made this year in the **Objective-C runtime** in *iOS* and *macOS* that **significantly improve memory use**.
 
