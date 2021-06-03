@@ -410,7 +410,8 @@ This gets used for things like **tagged UI colors** or **NSIndexSets**.
 
 ## Tagged Pointer in *Swift*
 
-Now, if this seems really handy to you, you might be disappointed to hear that **only the runtime maintainer, that is Apple, can add tagged pointer types**. 
+Now, if this seems really handy to you, you might be disappointed to hear that **only the runtime maintainer, that is Apple, can add tagged pointer types**.
+
 **But if you're a Swift programmer, you'll be happy to know that you can create your own kinds of tagged pointers.**
 
 If you've ever used **an enum with an associated value that's a class, that's like a tagged pointer**.
@@ -447,7 +448,7 @@ Just like in *Intel*, we have a special case for tag **seven**, where the **next
 
 Or that was actually the old format used in *iOS 13*.
 
-### `iOS 14`'s Change
+### iOS 14 's Change
 
 In this year's release, we're moving things around a bit.
 
@@ -467,7 +468,8 @@ For an **aligned pointer**, the **bottom three bits** are always zero, but we ca
 
 We'll add **seven** to set the **low bits** to one ( 7 -> 0B111 ). Remember, **seven** is the indication that this is an **extended tag**.
 
-And that means we can actually fit this pointer above into an **extended tag pointer** payload. **The result is a tagged pointer with a normal pointer in its payload.** 
+And that means we can actually fit this pointer above into an **extended tag pointer** payload. **The result is a tagged pointer with a normal pointer in its payload.**
+
 Why is that useful? 
 
 Well, **it opens up the ability for a tagged pointer to refer to constant data** in your binary such as **strings** or other data structures that would otherwise have to occupy **dirty memory**.
