@@ -91,7 +91,7 @@ So, it's important to ensure that the experience that you see in your hand is th
 
 **Furthermore**, launch covers a huge part of your code base, from **primer coating**, to **initialization**, to **view creation**, and more.
 
-And as such, if you're seen that your launch isn't as delightful as your users expected to be, this might be indicative that there's other parts of your code base that are delightful, as well. 
+And as such, if you're seen that your launch isn't as delightful as your users expected to be, this might be indicative that there's other parts of your code base that aren't delightful, as well. 
 
 ---
 
