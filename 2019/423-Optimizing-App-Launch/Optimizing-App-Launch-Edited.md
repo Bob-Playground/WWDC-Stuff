@@ -13,7 +13,7 @@ https://developer.apple.com/videos/play/wwdc2019/423/
     - [Warm launch](#warm-launch)
     - [Resume (APP is already launched)](#resume-app-is-already-launched)
   - [Goal : 400 milliseconds](#goal--400-milliseconds)
-  - [Launch phase](#launch-phase)
+  - [APP Launch phase](#app-launch-phase)
     - [System interface 1: dyld](#system-interface-1-dyld)
     - [System interface 2: libSystemInit](#system-interface-2-libsysteminit)
     - [Static runtime initialization](#static-runtime-initialization)
@@ -36,7 +36,7 @@ https://developer.apple.com/videos/play/wwdc2019/423/
     - [Optimizing work](#optimizing-work)
 - [Demo: App Launch Template in Xcode Instruments](#demo-app-launch-template-in-xcode-instruments)
   - [Thread states](#thread-states)
-  - [APP launch phase](#app-launch-phase)
+  - [APP launch phase](#app-launch-phase-1)
     - [Sets up system interfaces](#sets-up-system-interfaces)
     - [Static runtime initialization](#static-runtime-initialization-1)
     - [UIKit initialization](#uikit-initialization-1)
@@ -137,7 +137,7 @@ So, given this information, wouldn't it be great if launches were as quick and a
 
 That's so that we have pixels displayed to the user during the **launch animation**, and by the time that launch animation is complete, your app is interactive and responsive.
 
-## Launch phase
+## APP Launch phase
 
 The **first step** to doing that is understanding what is happening during launch.
 
