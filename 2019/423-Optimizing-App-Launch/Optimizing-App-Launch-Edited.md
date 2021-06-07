@@ -50,9 +50,9 @@ Hello everyone, my name is Spencer Lewson, and I'm an engineer on the **Performa
 
 Today I'm very excited to tell you about how you can optimize your app's launch.
 
-We'll be covering these **four main topics** today.
-
 # Overview
+
+We'll be covering these **four main topics** today.
 
 - First, what is launch? **What are the different types of launches** and **how do we break them down into their different subphases**? 
 - Next, we'll be talking about **how to properly measure your app's launch**.
@@ -63,7 +63,9 @@ We'll be covering these **four main topics** today.
 
 # 1. What is app launch
 
-So, what is that app launch I was talking about? Well, **app launch is a user experience interruption**.
+So, what is that app launch I was talking about? 
+
+Well, **app launch is a user experience interruption**.
 
 What do I mean by this? Let's take a look.
 
