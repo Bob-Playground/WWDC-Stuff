@@ -8,6 +8,10 @@ https://developer.apple.com/videos/play/wwdc2019/423/
 - [WWDC 2019 / 423 : Optimizing App Launch](#wwdc-2019--423--optimizing-app-launch)
 - [Overview](#overview)
 - [1. What is app launch](#1-what-is-app-launch)
+  - [Why is launch important](#why-is-launch-important)
+    - [First experience](#first-experience)
+    - [Indicate code base quality](#indicate-code-base-quality)
+    - [Performance](#performance)
   - [Launch Type](#launch-type)
     - [Cold launch](#cold-launch)
     - [Warm launch](#warm-launch)
@@ -24,7 +28,7 @@ https://developer.apple.com/videos/play/wwdc2019/423/
 - [2. Measure launch](#2-measure-launch)
   - [Prepare for measurement](#prepare-for-measurement)
     - [Reboot](#reboot)
-    - [Close iCloud](#close-icloud)
+    - [iCloud](#icloud)
     - [Use the release build](#use-the-release-build)
     - [Measuring with warm launches](#measuring-with-warm-launches)
   - [Pick out devices](#pick-out-devices)
@@ -81,7 +85,9 @@ So, we did some number crunching, and we figured out that with **we save only on
 
 But it's also important for a number of other reasons.
 
----
+## Why is launch important
+
+### First experience
 
 **First** of all, your app's launch is your user, first experience with your app, and as such, it should be delightful.
 
@@ -89,13 +95,13 @@ Now it's important to remember that as developers, **we tend to gravitate toward
 
 So, it's important to ensure that the experience that you see in your hand is the same experience that the customers, that your **users, have in their hands on different iOS devices and under different conditions**.
 
----
+### Indicate code base quality
 
 **Furthermore**, launch covers a huge part of your code base, from **primer coating**, to **initialization**, to **view creation**, and more.
 
 And as such, if you're seen that your launch isn't as delightful as your users expected to be, this might be indicative that there's other parts of your code base that aren't delightful, as well. 
 
----
+### Performance
 
 **Finally**, launch is a very intense time for the phone. Involves a lot of **CPU work** and a lot of **memory work**.
 
@@ -305,7 +311,7 @@ You could also reduce your dependence on the network by either **turning on airp
 
 Networking can introduce a fair amount of variance.
 
-### Close iCloud
+### iCloud
 
 iCloud is a great feature which works in the background to deliver a seamless experience to our users, but that work in the background can interfere with app launch.
 
