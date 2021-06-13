@@ -190,13 +190,9 @@ Finally, that means that you **should be hard linking all of your dependencies**
 
 ### System interface 2: libSystemInit
 
-**The second half** of **system interface** is **libSystemInit**.
+**The second half** of **system interface** is **libSystemInit**. This is when we **initialize the low-level system components** within your application.
 
-This is when we **initialize the low-level system components** within your application.
-
-Now this is mostly **system-side** work with a fixed cost.
-
-So, use developers don't need to focus on the section.
+Now this is mostly **system-side** work with a fixed cost. So, use developers don't need to focus on the section.
 
 ### Static runtime initialization
 
