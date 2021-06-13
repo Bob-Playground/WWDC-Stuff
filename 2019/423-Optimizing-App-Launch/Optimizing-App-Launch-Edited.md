@@ -17,6 +17,7 @@ https://developer.apple.com/videos/play/wwdc2019/423/
     - [Warm launch](#warm-launch)
     - [Resume (APP is already launched)](#resume-app-is-already-launched)
   - [Goal : 400 milliseconds](#goal--400-milliseconds)
+  - [Maps' Launch](#maps-launch)
   - [APP Launch phase](#app-launch-phase)
     - [System interface 1: dyld](#system-interface-1-dyld)
     - [System interface 2: libSystemInit](#system-interface-2-libsysteminit)
@@ -135,7 +136,7 @@ So, this will be a little bit faster and a little bit more consistent.
 
 This occurs when a user **reenters** your app from either the **home screen** or the **app switcher**.
 
-As you know, the app is already launched at this point, so it's going to be very fast.
+As you know, the **app is already launched** at this point, so it's going to be very fast.
 
 What you need to remember from this is **not to confuse** resumes with launches when you're taking measurements.
 
@@ -145,7 +146,7 @@ So, given this information, wouldn't it be great if launches were as quick and a
 
 That's so that we have pixels displayed to the user during the **launch animation**, and by the time that launch animation is complete, your app is **interactive** and **responsive**.
 
-## APP Launch phase
+## Maps' Launch
 
 The **first step** to doing that is understanding what is happening during launch.
 
@@ -161,7 +162,7 @@ So, in the case of *Maps*, all the *tiles* have not yet loaded. You can still in
 
 Then over the next couple hundred milliseconds, you can display that asynchronously loaded data and generate your final frame for your user.
 
----
+## APP Launch phase
 
 Let's take a closer look at these phases.
 
