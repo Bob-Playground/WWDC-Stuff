@@ -115,7 +115,7 @@ So, let's take a look at those launches I talked about before, there's a **cold 
 
 **Cold launches** occur after **reboot**, or when your **app has not been launched for very long time**.
 
-In order to launcher app, we need to 
+In order to ~~launcher~~(launch a) app, we need to 
 
 - **bring it from disk into memory**, 
 - **startup system-side services** that support your app, 
@@ -143,7 +143,7 @@ What you need to remember from this is **not to confuse** resumes with launches 
 
 So, given this information, wouldn't it be great if launches were as quick and as delightful as resumes? How can we achieve that? Well, **we need to hit the goal of rendering our first frame within 400 milliseconds**.
 
-That's so that we have pixels displayed to the user during the **launch animation**, and by the time that launch animation is complete, your app is interactive and responsive.
+That's so that we have pixels displayed to the user during the **launch animation**, and by the time that launch animation is complete, your app is **interactive** and **responsive**.
 
 ## APP Launch phase
 
