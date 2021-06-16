@@ -24,6 +24,8 @@ https://developer.apple.com/videos/play/wwdc2019/423/
     - [Static runtime initialization](#static-runtime-initialization)
     - [UIKit Initialization](#uikit-initialization)
     - [Application initialization](#application-initialization)
+      - [Without UIScene](#without-uiscene)
+      - [With UIScene](#with-uiscene)
     - [First frame render phase](#first-frame-render-phase)
     - [Extended phase](#extended-phase)
 - [2. Measure launch](#2-measure-launch)
@@ -224,6 +226,8 @@ This is where the good stuff is.
 
 This is where you as developers can likely have the biggest impact on your app's launch.
 
+#### Without UIScene
+
 For those of you who have not yet adopted the new **UIC** in **APIs** or are targeting iOS 12 or earlier, Application Init works, again, with these delegate call-back methods.
 
 `application:willFinishLaunchingwithOptions`, and `application:didFinishLaunchingwithOptions`.
@@ -232,13 +236,13 @@ As your app is displayed to the user, the further methods, `applicationDidBecome
 
 Now it's important to know that if you have not `UIScenes`, you should be creating your view controllers and `didFinishLaunchingwithOptions`.
 
-That's because with `UIScene`, **ApplicationInit** works a little bit differently. Now you will still get `willFinishLaunching` and `didFinishLaunchingwithOptions`, but as your app is displayed to the user, you will get the `UISceneDelegate` lifecycle callbacks.
+#### With UIScene
 
-Those are, of course `scene:willConnectwithSession` with options.
+That's because with `UIScene`, **Application Init** works a little bit differently. Now you will still get `willFinishLaunchingWithOptions` and `didFinishLaunchingWithOptions`, but as your app is displayed to the user, you will get the `UISceneDelegate` lifecycle callbacks.
 
-`ScenewillEnterForeground`, and `sceneDidBecomeActive`.
+Those are, of course ~~`scene:willConnectwithSession` with options~~ `-scene:willConnectToSession:options`, `sceneWillEnterForeground:`, and `sceneDidBecomeActive:`.
 
-You should be creating your view controllers, and `scene:willConnecttoSessionwithOptions`.
+You should be creating your view controllers, and ~~`scene:willConnecttoSessionwithOptions`~~ `-scene:willConnectToSession:options`.
 
 It's important to note that you should be only creating your view controllers, and `scene:willConnectToSessionwithOptions`, and that also, and `didFinishLaunchingwithOptions`.
 
