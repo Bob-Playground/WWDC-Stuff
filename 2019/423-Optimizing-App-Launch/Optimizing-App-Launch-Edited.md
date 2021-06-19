@@ -31,6 +31,7 @@ https://developer.apple.com/videos/play/wwdc2019/423/
 - [2. Measure launch](#2-measure-launch)
   - [Prepare for measurement](#prepare-for-measurement)
     - [Reboot](#reboot)
+    - [Network](#network)
     - [iCloud](#icloud)
     - [Use the release build](#use-the-release-build)
     - [Measuring with warm launches](#measuring-with-warm-launches)
@@ -307,6 +308,8 @@ We then validate these performance improvements by using telemetry collected fro
 First, reboot your device.
 
 This will clear out any unnecessary state, and then let it settle down over the next few minutes to clear up any boot time work.
+
+### Network
 
 You could also reduce your dependence on the network by either **turning on airplane mode or marking out your network dependencies in code**.
 
