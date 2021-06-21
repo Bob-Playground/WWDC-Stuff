@@ -35,7 +35,7 @@ https://developer.apple.com/videos/play/wwdc2019/423/
     - [iCloud](#icloud)
     - [Use the release build](#use-the-release-build)
     - [Measuring with warm launches](#measuring-with-warm-launches)
-    - [data set](#data-set)
+    - [Data set](#data-set)
   - [Pick out devices](#pick-out-devices)
   - [Use XCTest](#use-xctest)
 - [3. Improve launch](#3-improve-launch)
@@ -330,9 +330,11 @@ This is, of course, to **reduce the overhead of unnecessary debugging code** dur
 
 ### Measuring with warm launches
 
-Finally, **you should be measuring with warm launches**, which as mentioned before, are more consistent, because some of your app may already be in memory, and some of those system-side services may already be running. Now we can set up some data to test with.
+Finally, **you should be measuring with warm launches**, which as mentioned before, are more consistent, because some of your app may already be in memory, and some of those system-side services may already be running. 
 
-### data set
+### Data set
+
+Now we can set up some data to test with.
 
 **It's important to create a mock data set which is consistent, and you might need a couple data sets for different types of users**, such as users with small amounts of data and users with large amounts of data, though, in the ideal situation, your app should be able to scale to any amount of data.
 
