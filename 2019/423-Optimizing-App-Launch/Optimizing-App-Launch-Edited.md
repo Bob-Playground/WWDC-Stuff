@@ -38,12 +38,11 @@ https://developer.apple.com/videos/play/wwdc2019/423/
     - [Data set](#data-set)
   - [Pick out devices](#pick-out-devices)
   - [Use XCTest](#use-xctest)
-- [3. Improve launch](#3-improve-launch)
-  - [Steps](#steps)
+  - [Improve launch](#improve-launch)
     - [Minimize your work](#minimize-your-work)
     - [Prioritize your work](#prioritize-your-work)
     - [Optimizing work](#optimizing-work)
-- [Demo: App Launch Template in Xcode Instruments](#demo-app-launch-template-in-xcode-instruments)
+- [3. Demo: App Launch Template in Xcode Instruments](#3-demo-app-launch-template-in-xcode-instruments)
   - [Thread states](#thread-states)
   - [APP launch phase](#app-launch-phase-1)
     - [Sets up system interfaces](#sets-up-system-interfaces)
@@ -52,7 +51,7 @@ https://developer.apple.com/videos/play/wwdc2019/423/
     - [Applications initialization](#applications-initialization)
     - [First frame rendering](#first-frame-rendering)
   - [Use XCTest to measure launch performance (cold launch)](#use-xctest-to-measure-launch-performance-cold-launch)
-- [System-side optimizations](#system-side-optimizations)
+  - [System-side optimizations](#system-side-optimizations)
 - [Wrap up](#wrap-up)
 
 Hello everyone, my name is Spencer Lewson, and I'm an engineer on the **Performance Team** here at Apple.
@@ -360,7 +359,7 @@ Now we're ready to take some measurements.
 
 We'll talk about this more later.
 
-# 3. Improve launch
+## Improve launch
 
 So, now we've talked about what launch is and how to measure it, let's talk a little bit about **how to improve** it.
 
@@ -369,8 +368,6 @@ When you're reviewing your app's launch both in code and in instruments, you sho
 - That is to first **minimize your work**, 
 - then **prioritize your work**, 
 - and finally, **optimize your work**.
-
-## Steps
 
 ### Minimize your work
 
@@ -412,7 +409,7 @@ This is, of course, to reduce the CPU and memory overhead by doing work multiple
 
 So, I'd love to hand the stage over to Dan, who is going to give you a great demo on how to use the new **App Launch Template in Xcode Instruments** to understand and improve our app's launch.
 
-# Demo: App Launch Template in Xcode Instruments
+# 3. Demo: App Launch Template in Xcode Instruments
 
 Thank you, Spencer.
 
@@ -670,7 +667,7 @@ That was quick.
 
 Thank you. Back to you, Spencer.
 
-# System-side optimizations
+## System-side optimizations
 
 Thanks, Dan, for that awesome demo on how to use Xcode, Instruments, **AppLaunchTemplate** to improve our app launch experience.
 
