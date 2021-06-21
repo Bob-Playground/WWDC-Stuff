@@ -1,77 +1,76 @@
 # WWDC 2019 / 423 : Optimizing App Launch
 
-
-https://developer.apple.com/videos/play/wwdc2019/423/
+<https://developer.apple.com/videos/play/wwdc2019/423/>
 
 ---
 
 - [WWDC 2019 / 423 : Optimizing App Launch](#wwdc-2019--423--optimizing-app-launch)
-- [Overview](#overview)
-- [1. What is app launch](#1-what-is-app-launch)
-  - [Why is launch important](#why-is-launch-important)
-    - [First experience](#first-experience)
-    - [Indicate code base quality](#indicate-code-base-quality)
-    - [Performance](#performance)
-  - [Launch Type](#launch-type)
-    - [Cold launch](#cold-launch)
-    - [Warm launch](#warm-launch)
-    - [Resume (APP is already launched)](#resume-app-is-already-launched)
-  - [Goal : 400 milliseconds](#goal--400-milliseconds)
-  - [Maps' Launch](#maps-launch)
-  - [APP Launch phase](#app-launch-phase)
-    - [System interface 1: dyld](#system-interface-1-dyld)
-    - [System interface 2: libSystemInit](#system-interface-2-libsysteminit)
-    - [Static runtime initialization](#static-runtime-initialization)
-    - [UIKit Initialization](#uikit-initialization)
-    - [Application initialization](#application-initialization)
-      - [Without UIScene](#without-uiscene)
-      - [With UIScene](#with-uiscene)
-    - [First frame render phase](#first-frame-render-phase)
-    - [Extended phase](#extended-phase)
-- [2. Measure launch](#2-measure-launch)
-  - [Prepare for measurement](#prepare-for-measurement)
-    - [Reboot](#reboot)
-    - [Network](#network)
-    - [iCloud](#icloud)
-    - [Use the release build](#use-the-release-build)
-    - [Measuring with warm launches](#measuring-with-warm-launches)
-    - [Data set](#data-set)
-  - [Pick out devices](#pick-out-devices)
-  - [Use XCTest](#use-xctest)
-  - [Improve launch](#improve-launch)
-    - [Minimize your work](#minimize-your-work)
-    - [Prioritize your work](#prioritize-your-work)
-    - [Optimizing work](#optimizing-work)
-- [3. Demo: App Launch Template in Xcode Instruments](#3-demo-app-launch-template-in-xcode-instruments)
-  - [Thread states](#thread-states)
-  - [APP launch phase](#app-launch-phase-1)
-    - [Sets up system interfaces](#sets-up-system-interfaces)
-    - [Static runtime initialization](#static-runtime-initialization-1)
-    - [UIKit initialization](#uikit-initialization-1)
-    - [Applications initialization](#applications-initialization)
-    - [First frame rendering](#first-frame-rendering)
-  - [Use XCTest to measure launch performance (cold launch)](#use-xctest-to-measure-launch-performance-cold-launch)
-  - [System-side optimizations](#system-side-optimizations)
-- [Wrap up](#wrap-up)
+  - [Overview](#overview)
+  - [1. What is app launch](#1-what-is-app-launch)
+    - [Why is launch important](#why-is-launch-important)
+      - [First experience](#first-experience)
+      - [Indicate code base quality](#indicate-code-base-quality)
+      - [Performance](#performance)
+    - [Launch Type](#launch-type)
+      - [Cold launch](#cold-launch)
+      - [Warm launch](#warm-launch)
+      - [Resume (APP is already launched)](#resume-app-is-already-launched)
+    - [Goal : 400 milliseconds](#goal--400-milliseconds)
+    - [Maps' Launch](#maps-launch)
+    - [APP Launch phase](#app-launch-phase)
+      - [1. System interface: dyld](#1-system-interface-dyld)
+      - [1. System interface: libSystemInit](#1-system-interface-libsysteminit)
+      - [2. Static runtime initialization](#2-static-runtime-initialization)
+      - [3. UIKit Initialization](#3-uikit-initialization)
+      - [4. Application initialization](#4-application-initialization)
+        - [Without UIScene](#without-uiscene)
+        - [With UIScene](#with-uiscene)
+      - [5. First frame render phase](#5-first-frame-render-phase)
+      - [6. Extended phase](#6-extended-phase)
+  - [2. Measure launch](#2-measure-launch)
+    - [Prepare for measurement](#prepare-for-measurement)
+      - [Reboot](#reboot)
+      - [Network](#network)
+      - [iCloud](#icloud)
+      - [Use the release build](#use-the-release-build)
+      - [Measuring with warm launches](#measuring-with-warm-launches)
+      - [Data set](#data-set)
+    - [Pick out devices](#pick-out-devices)
+    - [Use XCTest](#use-xctest)
+    - [Improve launch](#improve-launch)
+      - [Minimize your work](#minimize-your-work)
+      - [Prioritize your work](#prioritize-your-work)
+      - [Optimizing work](#optimizing-work)
+  - [3. Demo: App Launch Template in Xcode Instruments](#3-demo-app-launch-template-in-xcode-instruments)
+    - [Thread states](#thread-states)
+    - [APP launch phase](#app-launch-phase-1)
+      - [Sets up system interfaces](#sets-up-system-interfaces)
+      - [Static runtime initialization](#static-runtime-initialization)
+      - [UIKit initialization](#uikit-initialization)
+      - [Applications initialization](#applications-initialization)
+      - [First frame rendering](#first-frame-rendering)
+    - [Use XCTest to measure launch performance (cold launch)](#use-xctest-to-measure-launch-performance-cold-launch)
+    - [System-side optimizations](#system-side-optimizations)
+  - [Wrap up](#wrap-up)
 
 Hello everyone, my name is Spencer Lewson, and I'm an engineer on the **Performance Team** here at Apple.
 
 Today I'm very excited to tell you about how you can optimize your app's launch.
 
-# Overview
+## Overview
 
 We'll be covering these **four main topics** today.
 
-- First, what is launch? **What are the different types of launches** and **how do we break them down into their different subphases**? 
+- First, what is launch? **What are the different types of launches** and **how do we break them down into their different subphases**?
 - Next, we'll be talking about **how to properly measure your app's launch**.
   - **Out in the field**, iOS devices can be in a variety of different states and conditions, and these states and conditions can produce inconsistent launch results.
   - So, it's important to understand these states and how to reduce their impact when you're taking measurements.
   - Once you've done that, you can take a look at how to use **Instruments** to profile and understand your app to find opportunities to improve it.
-- And finally, we'll leave you with some tips and some tricks on **how to monitor your app's launch**, both over time and in the field, to ensure that you consistently deliver a delightful experience to all of your users. 
+- And finally, we'll leave you with some tips and some tricks on **how to monitor your app's launch**, both over time and in the field, to ensure that you consistently deliver a delightful experience to all of your users.
 
-# 1. What is app launch
+## 1. What is app launch
 
-So, what is that app launch I was talking about? 
+So, what is that app launch I was talking about?
 
 Well, **app launch is a user experience interruption**.
 
@@ -89,9 +88,9 @@ So, we did some number crunching, and we figured out that with **we save only on
 
 But it's also important for a number of other reasons.
 
-## Why is launch important
+### Why is launch important
 
-### First experience
+#### First experience
 
 **First** of all, your app's launch is your user, first experience with your app, and as such, it should be delightful.
 
@@ -99,33 +98,33 @@ Now it's important to remember that as developers, **we tend to gravitate toward
 
 So, it's important to ensure that the experience that you see in your hand is the same experience that the customers, that your **users, have in their hands on different iOS devices and under different conditions**.
 
-### Indicate code base quality
+#### Indicate code base quality
 
 **Furthermore**, launch covers a huge part of your code base, from **primer coating**, to **initialization**, to **view creation**, and more.
 
-And as such, if you're seen that your launch isn't as delightful as your users expected to be, this might be indicative that there's other parts of your code base that aren't delightful, as well. 
+And as such, if you're seen that your launch isn't as delightful as your users expected to be, this might be indicative that there's other parts of your code base that aren't delightful, as well.
 
-### Performance
+#### Performance
 
 **Finally**, launch is a very intense time for the phone. Involves a lot of **CPU work** and a lot of **memory work**.
 
 So, you should try to reduce this as it impacts the system performance, and of course, your user's **battery life**.
 
-## Launch Type
+### Launch Type
 
 So, let's take a look at those launches I talked about before, there's a **cold launch**, a **warm launch**, and something is often referred to as launch, but **isn't quite a launch, a resume**.
 
-### Cold launch
+#### Cold launch
 
 **Cold launches** occur after **reboot**, or when your **app has not been launched for very long time**.
 
-In order to ~~launcher~~(launch a) app, we need to 
+In order to ~~launcher~~(launch a) app, we need to
 
-- **bring it from disk into memory**, 
-- **startup system-side services** that support your app, 
+- **bring it from disk into memory**,
+- **startup system-side services** that support your app,
 - and then **spawn your process**.
 
-### Warm launch
+#### Warm launch
 
 As you'd expect, this can take a little time, but fortunately, **once it's happened once, you'll experience a warm launch**.
 
@@ -133,7 +132,7 @@ As you'd expect, this can take a little time, but fortunately, **once it's happe
 
 So, this will be a little bit faster and a little bit more consistent.
 
-### Resume (APP is already launched)
+#### Resume (APP is already launched)
 
 **Finally**, there's that **resume**.
 
@@ -143,13 +142,13 @@ As you know, the **app is already launched** at this point, so it's going to be 
 
 What you need to remember from this is **not to confuse** resumes with launches when you're taking measurements.
 
-## Goal : 400 milliseconds
+### Goal : 400 milliseconds
 
 So, given this information, wouldn't it be great if launches were as quick and as delightful as resumes? How can we achieve that? Well, **we need to hit the goal of rendering our first frame within 400 milliseconds**.
 
 That's so that we have pixels displayed to the user during the **launch animation**, and by the time that launch animation is complete, your app is **interactive** and **responsive**.
 
-## Maps' Launch
+### Maps' Launch
 
 The **first step** to doing that is understanding what is happening during launch.
 
@@ -165,13 +164,13 @@ So, in the case of *Maps*, all the *tiles* have not yet loaded. You can still in
 
 Then over the next couple hundred milliseconds, you can display that asynchronously loaded data and generate your final frame for your user.
 
-## APP Launch phase
+### APP Launch phase
 
 Let's take a closer look at these phases.
 
 These **six phases** cover everything  from **system initialization** to the **app initialization**  to **view creation and layout**, and then depending on your app, potentially a **asynchronous loading phase for your data**, the **extended phase**.
 
-### System interface 1: dyld
+#### 1. System interface: dyld
 
 **The first half** of **system interface** is **dyld**. For those of you unfamiliar, **a dynamic linker loads your shared libraries and frameworks**.
 
@@ -191,13 +190,13 @@ We also recommend that you **avoid dynamic library loading, such as DLOpen or NS
 
 Finally, that means that you **should be hard linking all of your dependencies**, as it's now even faster than it was before.
 
-### System interface 2: libSystemInit
+#### 1. System interface: libSystemInit
 
 **The second half** of **system interface** is **libSystemInit**. This is when we **initialize the low-level system components** within your application.
 
 Now this is mostly **system-side** work with a fixed cost. So, use developers don't need to focus on the section.
 
-### Static runtime initialization
+#### 2. Static runtime initialization
 
 Now we have **static runtime initialization**.
 
@@ -209,9 +208,9 @@ In general, we **don't recommend static initialization**. So, let's take a momen
 
 If you own a framework which uses static initialization, consider exposing API to initialize your stack early.
 
-But if you must use static initialization, consider **moving** code out of **class load** which is invoked every time during launch *to* **class initialize**, which is lazily invoked the first time you use a method within your class. 
+But if you must use static initialization, consider **moving** code out of **class load** which is invoked every time during launch *to* **class initialize**, which is lazily invoked the first time you use a method within your class.
 
-### UIKit Initialization
+#### 3. UIKit Initialization
 
 Next up is **UIKit Initialization**. This is when the **system instantiates your UIApplication and your UIApplicationDelegate**.
 
@@ -219,7 +218,7 @@ For the most part, this is **system-side** work, setting up **event processing**
 
 But you can still effect this phase if you subclass **UIApplication** or you do any work in **UIApplicationDelegate** initializers.
 
-### Application initialization
+#### 4. Application initialization
 
 Now we have application initialization.
 
@@ -227,7 +226,7 @@ This is where the good stuff is.
 
 This is where you as developers can likely have the biggest impact on your app's launch.
 
-#### Without UIScene
+##### Without UIScene
 
 For those of you who have not yet adopted the new **UIC** in **APIs** or are targeting iOS 12 or earlier, Application Init works, again, with these delegate call-back methods.
 
@@ -237,7 +236,7 @@ As your app is displayed to the user, the further methods, `applicationDidBecome
 
 Now it's important to know that if you have not `UIScenes`, you should be creating your view controllers and `didFinishLaunchingwithOptions`.
 
-#### With UIScene
+##### With UIScene
 
 That's because with `UIScene`, **Application Init** works a little bit differently. Now you will still get `willFinishLaunchingWithOptions` and `didFinishLaunchingWithOptions`, but as your app is displayed to the user, you will get the `UISceneDelegate` lifecycle callbacks.
 
@@ -247,7 +246,7 @@ You should be creating your view controllers, and ~~`scene:willConnecttoSessionw
 
 It's important to note that you should be only creating your view controllers, and `scene:willConnectToSessionwithOptions`, and that also, and `didFinishLaunchingwithOptions`.
 
-That the common **pitfall**, which, of course, results in performance losses and, likely, unpredictable bugs in your code base. 
+That the common **pitfall**, which, of course, results in performance losses and, likely, unpredictable bugs in your code base.
 
 Regardless of whether or not you've adopted the new UIScene APIs, our advice for this phase is generally the same. You should be **deferring** any **unrelated work but it's not necessary to commit your first frame**, by **either pushing it to the background queues or just doing it later entirely**.
 
@@ -257,7 +256,7 @@ This is, of course, to **reduce the overhead of doing any work unnecessarily mul
 
 To learn more about `UIScenes`, please take a look at these two talks from earlier this week.
 
-### First frame render phase
+#### 5. First frame render phase
 
 Next is the **first frame render phase**.
 
@@ -271,7 +270,7 @@ You can affect this phase by reducing the number of views in your hierarchy. And
 
 You should also take a look at your *autolayout* and see if you can reduce the number of constraints you're using.
 
-### Extended phase
+#### 6. Extended phase
 
 **Finally**, we have the extended phase.
 
@@ -285,7 +284,7 @@ But if you do have this phase, your app should be interactive and responsive.
 
 If you do have this phase, we only have general advice on how you should approach it, and that is to understand what is happening, and you can do that by leveraging **OS signpost APIs** to mark out and measure the work that occurs in between these two time periods.
 
-# 2. Measure launch
+## 2. Measure launch
 
 Now that we talked about what launch is, let's talk about how to get usable measurements.
 
@@ -301,37 +300,37 @@ At Apple, we've been using this technique to successfully detect regressions dur
 
 We then validate these performance improvements by using telemetry collected from the field. Fortunately, we have **some tips on setting up that clean and consistent environment.**
 
-## Prepare for measurement
+### Prepare for measurement
 
-### Reboot
+#### Reboot
 
 First, reboot your device.
 
 This will clear out any unnecessary state, and then let it settle down over the next few minutes to clear up any boot time work.
 
-### Network
+#### Network
 
 You could also reduce your dependence on the network by either **turning on airplane mode or marking out your network dependencies in code**.
 
 Networking can introduce a fair amount of variance.
 
-### iCloud
+#### iCloud
 
 iCloud is a great feature which works in the background to deliver a seamless experience to our users, but that work in the background can interfere with app launch.
 
 So, during your measurements, **using unchanging iCloud account with unchanging data, or log out of iCloud entirely.**
 
-### Use the release build
+#### Use the release build
 
 Next be sure to **use the release build** of your application when you're making measurements.
 
 This is, of course, to **reduce the overhead of unnecessary debugging code** during your measurements and to take advantage of the compile time optimizations.
 
-### Measuring with warm launches
+#### Measuring with warm launches
 
-Finally, **you should be measuring with warm launches**, which as mentioned before, are more consistent, because some of your app may already be in memory, and some of those system-side services may already be running. 
+Finally, **you should be measuring with warm launches**, which as mentioned before, are more consistent, because some of your app may already be in memory, and some of those system-side services may already be running.
 
-### Data set
+#### Data set
 
 Now we can set up some data to test with.
 
@@ -339,7 +338,7 @@ Now we can set up some data to test with.
 
 That's why loading only the data that is necessary to show your first frame.
 
-## Pick out devices
+### Pick out devices
 
 Now we're ready to pick out some devices.
 
@@ -353,23 +352,23 @@ This will ensure that your launch is delightful for all of your users on all of 
 
 Now we're ready to take some measurements.
 
-## Use XCTest
+### Use XCTest
 
 **We can leverage the new XCTest for app launce performance in Xcode 11.** With just a few lines of code, Xcode will launch your app repeatedly and then provide **statistical results** about how it performs.
 
 We'll talk about this more later.
 
-## Improve launch
+### Improve launch
 
 So, now we've talked about what launch is and how to measure it, let's talk a little bit about **how to improve** it.
 
 When you're reviewing your app's launch both in code and in instruments, you should keep these **three tips and tricks** in mind.
 
-- That is to first **minimize your work**, 
-- then **prioritize your work**, 
+- That is to first **minimize your work**,
+- then **prioritize your work**,
 - and finally, **optimize your work**.
 
-### Minimize your work
+#### Minimize your work
 
 When minimizing work, you should be **deferring** anything unrelated to generating the first frame.
 
@@ -379,9 +378,9 @@ You should also **avoid blocking the main thread, either with network I/O, file 
 
 Move it to a background thread.
 
-Finally, you should take care to **reduce your memory usage**. Allocating and manipulating memory can take time. 
+Finally, you should take care to **reduce your memory usage**. Allocating and manipulating memory can take time.
 
-### Prioritize your work
+#### Prioritize your work
 
 Next, prioritize your work.
 
@@ -389,9 +388,9 @@ This is when you should make sure that work is scheduled at the right quality of
 
 Now in *iOS 13*, we've made some exciting optimizations to the **Scheduler** to make your apps launch even faster. But that means **it's more critical than ever to preserve priority issue propagate work across threads**.
 
-You should take a look at **Modernizing Grand Central Dispatch Usage** from **WW 2017** ( https://developer.apple.com/videos/play/wwdc2017/706/ ), which goes into depth about how to handle concurrency correctly.
+You should take a look at **Modernizing Grand Central Dispatch Usage** from **WW 2017** ( <https://developer.apple.com/videos/play/wwdc2017/706/> ), which goes into depth about how to handle concurrency correctly.
 
-### Optimizing work
+#### Optimizing work
 
 Finally, we have optimizing work.
 
@@ -409,7 +408,7 @@ This is, of course, to reduce the CPU and memory overhead by doing work multiple
 
 So, I'd love to hand the stage over to Dan, who is going to give you a great demo on how to use the new **App Launch Template in Xcode Instruments** to understand and improve our app's launch.
 
-# 3. Demo: App Launch Template in Xcode Instruments
+## 3. Demo: App Launch Template in Xcode Instruments
 
 Thank you, Spencer.
 
@@ -465,7 +464,7 @@ Speaking of thread states -- oops.
 
 Like that.
 
-## Thread states
+### Thread states
 
 **Speaking of thread states, gray means it's blocked, meaning that the thread isn't doing any work.**
 
@@ -483,9 +482,9 @@ To your **left**, you can see the detailed stack trace of all the work that's be
 
 To your **right**, you can see a aggregated stack trace, which lists all of the symbols ordered by the number of CPU sample size.
 
-## APP launch phase
+### APP launch phase
 
-### Sets up system interfaces
+#### Sets up system interfaces
 
 Now notice that this initial phase only took **6 milliseconds** as it **sets up its system interfaces**.
 
@@ -497,9 +496,9 @@ Let's move on, but before we do so, there's one other thing I should point out h
 
 Notice that while this phase only spent **6 milliseconds on the CPU clock** for Star Searcher, it spent **149 milliseconds on the wall clock**.
 
-**This discrepancy comes from the overhead of the profiling mechanism itself, which does give us a lot of information and insight, but has a cost of its own. **So, this is why it's very important to distinguish profiling with measurements, which I will explain more later on.
+**This discrepancy comes from the overhead of the profiling mechanism itself, which does give us a lot of information and insight, but has a cost of its own.** So, this is why it's very important to distinguish profiling with measurements, which I will explain more later on.
 
-### Static runtime initialization
+#### Static runtime initialization
 
 On to the next phase, which is **static runtime initialization**.
 
@@ -539,7 +538,7 @@ In our case let's use **os.log**, which is a very lightweight and efficient logg
 
 Now because the cost here is with a static initializer, we need to make sure to remove the linkage in order for it not to impact us. So, with that, let's go back to our trace.
 
-### UIKit initialization
+#### UIKit initialization
 
 **The next phase is UIKit initialization**, which took **28 milliseconds** on the wall clock.
 
@@ -549,7 +548,7 @@ So, unless you subclass UI application or do a custom initialization work in `UI
 
 So, let's move on.
 
-### Applications initialization
+#### Applications initialization
 
 **The next chunk of work is your applications initialization, which is pretty much what you control.**
 
@@ -593,7 +592,7 @@ One for loading data asynchronously using this GrandCentralDispatch's async prim
 
 Now looking at the actual call sites within the `didFinishLaunchingwithOptions`, we are leveraging the asynchronous API, but also leveraging the **dispatch semaphore** to ensure that we wait for all of the data to be fetched before we proceed on to drawing the actual first frame of our table view. Now if we're going to be doing this, we should use the correct concurrency primitive, which is the sync primitive in GCD.
 
-Now using the correct concurrency primitives, GrandCentralDispatch will temporarily propagate the priority of the main thread to the worker thread and boost it up to user inactive so that it matches. 
+Now using the correct concurrency primitives, GrandCentralDispatch will temporarily propagate the priority of the main thread to the worker thread and boost it up to user inactive so that it matches.
 
 So, at this point, I think we have the potential to resolve the priority inversion, but there's one more issue that I notice here.
 
@@ -611,7 +610,7 @@ Afterwards, we should load all of the rest lazily in the background and only upd
 
 Let's move on.
 
-### First frame rendering
+#### First frame rendering
 
 Back to the trace, last but not least.
 
@@ -619,7 +618,7 @@ The last phase is our first frame rendering.
 
 Notice that this phase took **951 milliseconds**, which is very long, considering that this is only responsible for doing the layout work and the rendering of our first frame.
 
-Now let's taking a deeper dive, it points us to the `StarTableviewController`, and looking at the detailed stack trace, we see a lot of work and a `cellForRowAt` callback, which is responsible for doing the layout work of the cells. 
+Now let's taking a deeper dive, it points us to the `StarTableviewController`, and looking at the detailed stack trace, we see a lot of work and a `cellForRowAt` callback, which is responsible for doing the layout work of the cells.
 
 Let's go ahead and expand that.
 
@@ -641,11 +640,11 @@ Where should we defer it to? Perhaps the `didSelectRowAt` callback, which is inv
 
 So, at this point, we've made several enhancements, or optimizations, to **Star Searcher**. So, let's go ahead and re-profile it.
 
-**Now one thing to note here is that as you make incremental changes, you should consistently remeasure and re-profile as you make progress. That way, you can actually understand the exact impact of your incremental change set. **
+**Now one thing to note here is that as you make incremental changes, you should consistently remeasure and re-profile as you make progress. That way, you can actually understand the exact impact of your incremental change set.**
 
 But for the sake of his demo, we've actually aggregated all the changes into one for the sake of time and boom. There's a little UI glitch, but we can immediately see that our launch is under **500 milliseconds**.
 
-## Use XCTest to measure launch performance (cold launch)
+### Use XCTest to measure launch performance (cold launch)
 
 Now, as I said earlier, the **profiling mechanism does come with a cost of its own**. So, to get a better understanding of what our users would experience, let's go ahead and **leverage the new XCTest APIs to measure our launch performance within our test**.
 
@@ -667,7 +666,7 @@ That was quick.
 
 Thank you. Back to you, Spencer.
 
-## System-side optimizations
+### System-side optimizations
 
 Thanks, Dan, for that awesome demo on how to use Xcode, Instruments, **AppLaunchTemplate** to improve our app launch experience.
 
@@ -689,7 +688,7 @@ We also put **AutoLayout** and **Objective-C** under the microscope and made a b
 
 And then finally, we have exciting changes to a**pp packaging** coming later this year.
 
-# Wrap up
+## Wrap up
 
 We think that altogether these changes should result in a huge improvement your apps with very little to no adoption. So, let's wrap things up with **some tips and tricks** on how to make sure your app stays delightful once you've done all this work.
 
@@ -703,7 +702,7 @@ This is because it's incredibly easy to introduce regression, especially a littl
 
 The problem is these little ones add up to a big problem, and if you don't address them immediately, it becomes very hard to find them all. In order to do that, to detect those regressions, **you should be plotting your app's launch over time and running tests regularly**.
 
-This will ensure that you're meeting your target and that you immediately know if you've regressed from that target. 
+This will ensure that you're meeting your target and that you immediately know if you've regressed from that target.
 
 ---
 
@@ -719,7 +718,7 @@ They will then be **aggregated over 24-hour periods** and sent back to your orga
 
 From there, you're free to handle the data as you see fit.
 
-To learn more about this, we recommend you check out **Improving Battery Life and Performance** from **WW 2019** ( https://developer.apple.com/videos/play/wwdc2019/417/ ).
+To learn more about this, we recommend you check out **Improving Battery Life and Performance** from **WW 2019** ( <https://developer.apple.com/videos/play/wwdc2019/417/> ).
 
 So, in summary, we'd love for you today to start understanding your app's launch with the new **AppLauchTemplate** in **Xcode Instruments**.
 
