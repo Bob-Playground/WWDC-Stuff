@@ -466,13 +466,12 @@ Like that.
 
 ### Thread states
 
-**Speaking of thread states, gray means it's blocked, meaning that the thread isn't doing any work.**
+Speaking of thread states,
 
-**Red means it's runnable, meaning that there's work scheduled to be done, but lacking CPU resources.**
-
-**Orange means it's preempted, meaning that it was doing work but got interrupted in favor of other competing work that has a higher priority.**
-
-**And last but not least, blue means it's running, meaning that it's actually doing work on the CPU core.**
+- **Gray** means it's blocked, meaning that the thread isn't doing any work.
+- **Red** means it's runnable, meaning that there's work scheduled to be done, but lacking CPU resources.**
+- **Orange** means it's preempted, meaning that it was doing work but got interrupted in favor of other competing work that has a higher priority.
+- **Blue** means it's running, meaning that it's actually doing work on the CPU core.
 
 So, with that information, let's take a look phase by phase starting with the system interface initialization.
 
@@ -642,7 +641,7 @@ So, at this point, we've made several enhancements, or optimizations, to **Star 
 
 **Now one thing to note here is that as you make incremental changes, you should consistently remeasure and re-profile as you make progress. That way, you can actually understand the exact impact of your incremental change set.**
 
-But for the sake of his demo, we've actually aggregated all the changes into one for the sake of time and boom. There's a little UI glitch, but we can immediately see that our launch is under **500 milliseconds**.
+But for the sake of this demo, we've actually aggregated all the changes into one for the sake of time and boom. There's a little UI glitch, but we can immediately see that our launch is under **500 milliseconds**.
 
 ### Use XCTest to measure launch performance (cold launch)
 

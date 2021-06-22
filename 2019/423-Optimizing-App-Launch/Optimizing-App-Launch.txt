@@ -488,7 +488,7 @@ Where should we defer it to? Perhaps the didSelectRowAt callback, which is invok
 
 So, at this point, we've made several enhancements, or optimizations, to Star Searcher. So, let's go ahead and re-profile it.
 
-Now one thing to note here is that as you make incremental changes, you should consistently remeasure and re-profile as you make progress. That way, you can actually understand the exact impact of your incremental change set. But for the sake of his demo, we've actually aggregated all the changes into one for the sake of time and boom. There's a little UI glitch, but we can immediately see that our launch is under 500 milliseconds.
+Now one thing to note here is that as you make incremental changes, you should consistently remeasure and re-profile as you make progress. That way, you can actually understand the exact impact of your incremental change set. But for the sake of this demo, we've actually aggregated all the changes into one for the sake of time and boom. There's a little UI glitch, but we can immediately see that our launch is under 500 milliseconds.
 
 Now, as I said earlier, the profiling mechanism does come with a cost of its own. So, to get a better understanding of what our users would experience, let's go ahead and leverage the new XCTest APIs to measure our launch performance within our test.
 
