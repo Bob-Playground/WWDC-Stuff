@@ -52,6 +52,9 @@
     - [Use XCTest to measure launch performance (cold launch)](#use-xctest-to-measure-launch-performance-cold-launch)
     - [System-side optimizations](#system-side-optimizations)
   - [Wrap up](#wrap-up)
+    - [Measure APP's launch over time](#measure-apps-launch-over-time)
+    - [Xcode organizer](#xcode-organizer)
+    - [MetricKit](#metrickit)
 
 Hello everyone, my name is Spencer Lewson, and I'm an engineer on the **Performance Team** here at Apple.
 
@@ -581,9 +584,9 @@ Well, let's figure out why.
 
 ---
 
-As we click on the **worker thread**, we notice that there's a lot of work scheduled to do work at **priority 4**.
+As we click on the **worker thread**, we notice that there's a lot of work scheduled to do work at **priority 4**. This is equivalent to the **background QoS**.
 
-This is equivalent to the **background QoS**. What we're actually seeing here is a symptom known as **priority inversion**, where **a given thread is being blocked by a separate thread that has a lower QoS, or priority, than itself**.
+What we're actually seeing here is a symptom known as **priority inversion**, where **a given thread is being blocked by a separate thread that has a lower QoS, or priority, than itself**.
 
 Obviously, this isn't ideal, because it's still aimed to launch more than it should.
 
@@ -593,7 +596,7 @@ One for loading data asynchronously using this GrandCentralDispatch's async prim
 
 Now looking at the actual call sites within the `didFinishLaunchingwithOptions`, we are leveraging the asynchronous API, but also leveraging the **dispatch semaphore** to ensure that we wait for all of the data to be fetched before we proceed on to drawing the actual first frame of our table view. Now if we're going to be doing this, we should use the correct concurrency primitive, which is the sync primitive in GCD.
 
-Now using the correct concurrency primitives, GrandCentralDispatch will temporarily propagate the priority of the main thread to the worker thread and boost it up to user inactive so that it matches.
+Now using the correct concurrency primitives, GrandCentralDispatch will **temporarily propagate the priority of the main thread to the worker thread** and boost it up to user inactive so that it matches.
 
 So, at this point, I think we have the potential to resolve the priority inversion, but there's one more issue that I notice here.
 
@@ -693,7 +696,7 @@ And then finally, we have exciting changes to a**pp packaging** coming later thi
 
 We think that altogether these changes should result in a huge improvement your apps with very little to no adoption. So, let's wrap things up with **some tips and tricks** on how to make sure your app stays delightful once you've done all this work.
 
----
+### Measure APP's launch over time
 
 **First of all**, don't let performance be an afterthought.
 
@@ -705,13 +708,15 @@ The problem is these little ones add up to a big problem, and if you don't addre
 
 This will ensure that you're meeting your target and that you immediately know if you've regressed from that target.
 
----
+### Xcode organizer
 
-**You should also take a look at the new Xcode organizer, which lets you know how your app performs in the field.  In iOS 13, for users that have opted in, power and performance metrics will be gathered about your app.**
+You should also take a look at the new **Xcode organizer**, which lets you know how your app performs in the field.
+
+**In iOS 13, for users that have opted in, power and performance metrics will be gathered about your app.**
 
 They will then be **aggregated over 24-hour periods** and sent back to your organizer where you can view them in the form of histograms by software version and device version.
 
----
+### MetricKit
 
 **However, if you desire a little bit more control over that data, you can adopt MetricKit. MetricKit allows you to specify custom power and performance metrics.**
 
@@ -720,6 +725,8 @@ They will then be **aggregated over 24-hour periods** and sent back to your orga
 From there, you're free to handle the data as you see fit.
 
 To learn more about this, we recommend you check out **Improving Battery Life and Performance** from **WW 2019** ( <https://developer.apple.com/videos/play/wwdc2019/417/> ).
+
+---
 
 So, in summary, we'd love for you today to start understanding your app's launch with the new **AppLauchTemplate** in **Xcode Instruments**.
 
