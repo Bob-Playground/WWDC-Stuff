@@ -519,7 +519,9 @@ However, the only place we invoke this framework is within the tableViewControll
 
 Specifically, within the `didSelectRowAt` callback.
 
-Now this callback is completely out of the launch path, because it's only invoked when the user taps on a cell. So, why is it doing over **300 milliseconds**' worth of work during early launch and even **before our main function is invoked**? Well, let's investigate.
+Now this callback is completely out of the launch path, because it's only invoked when the user taps on a cell. So, why is it doing over **300 milliseconds**' worth of work during early launch and even **before our main function is invoked**?
+
+Well, let's investigate.
 
 By searching the symbol, it points us to a **plus-load method** declared within the `SLSuperfastLogger` class.
 
@@ -573,7 +575,7 @@ So, there's some relationship here.
 
 **47 is equivalent to the user interactive QoS.**
 
-**Now look at all this red meeting there's a lot of work to do, but it's lacking CPU resources.**
+**Now look at all this red ~~meeting~~ meaning there's a lot of work to do, but it's lacking CPU resources.**
 
 Well, let's figure out why.
 

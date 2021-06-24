@@ -430,7 +430,7 @@ So, there's some relationship here.
 
 Now going back to the main thread, notice that it's scheduled to do work at priority 47.
 
-Forty-seven is equivalent to the user interactive QoS. Now look at all this red meeting there's a lot of work to do, but it's lacking CPU resources.
+Forty-seven is equivalent to the user interactive QoS. Now look at all this red meaning there's a lot of work to do, but it's lacking CPU resources.
 
 Well, let's figure out why.
 
