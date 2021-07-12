@@ -22,6 +22,37 @@
     - [Demo](#demo)
   - [A brief history of dyld](#a-brief-history-of-dyld)
     - [dyld 1](#dyld-1)
+      - [Prebinding](#prebinding)
+    - [dyld 2](#dyld-2)
+      - [Security issues](#security-issues)
+      - [Reduce the amount of prebinding](#reduce-the-amount-of-prebinding)
+    - [dyld 2.x](#dyld-2x)
+      - [More architectures and platforms](#more-architectures-and-platforms)
+      - [Improved security](#improved-security)
+      - [Improved performance](#improved-performance)
+      - [Shared Cache](#shared-cache)
+        - [Rearranges binaries to improve load speed](#rearranges-binaries-to-improve-load-speed)
+        - [Pre-links dylibs](#pre-links-dylibs)
+        - [Pre-builds data structures used by dyld and ObjC](#pre-builds-data-structures-used-by-dyld-and-objc)
+    - [dyld 3](#dyld-3)
+      - [Performance](#performance)
+      - [Security](#security)
+      - [Testability and Reliability](#testability-and-reliability)
+  - [How dyld 2 launches an app](#how-dyld-2-launches-an-app)
+    - [Parse Mach-O Headers & Find Dependencies](#parse-mach-o-headers--find-dependencies)
+    - [Map Mach-O files](#map-mach-o-files)
+    - [Perform symbol lookups](#perform-symbol-lookups)
+    - [Bind and rebase](#bind-and-rebase)
+    - [Run initializers](#run-initializers)
+  - [`dyld 3` is three components](#dyld-3-is-three-components)
+    - [`dyld 3` is an out-of-process mach-o parser](#dyld-3-is-an-out-of-process-mach-o-parser)
+    - [`dyld 3` is a small in-process engine](#dyld-3-is-a-small-in-process-engine)
+    - [`dyld 3` is a launch closure cache](#dyld-3-is-a-launch-closure-cache)
+      - [System app](#system-app)
+      - [Third-party app](#third-party-app)
+      - [macOS: side load applications](#macos-side-load-applications)
+  - [Preparing for dyld 3](#preparing-for-dyld-3)
+    - [`dyld 3` Potential issues](#dyld-3-potential-issues)
 
 Hello everybody.
 
@@ -164,69 +195,256 @@ And this was **dyld 1** and it shipped as part of **NeXTStep 3.3** back in **199
 
 **Before that, NeXT used static binaries.**
 
-And it's worth noting this predates the POSIX dlopen calls being standardized. Now, dlopen did exist on some Unix. They were proprietary extensions that later people adopted. And NeXTStep had different proprietary extensions, so people wrote third-party wrappers on the early versions of macOS 10 to support standard Unix software. The problem was they didn't quite support the same semantics. There were some weird edge cases where it didn't work, and ultimately they were kind of slow. It also was written before most systems used large C++ dynamic libraries, and this is important. C++ has a number of features, such as how its initializer ordering works. And one definition rule; they work well in a static environment, but are actually fairly hard to do, at least with good performance, in a dynamic environment. So large C++ code bases cause the dynamic linker to have to do a lot of work and it was quite slow.
+And it's worth noting this predates the **POSIX dlopen** calls being standardized. Now, `dlopen` did exist on some Unix. They were proprietary extensions that later people adopted.
 
-We also added one other feature before we shipped macOS 10.0, Cheetah, and that's called prebinding. And for those of you in the audience who know what prebinding is, I know it was kind of painful; and for the rest of you, prebinding was a technology where we would try to find fixed addresses for every dylib in the system and for your application, and the dynamic loader would try to load everything at those addresses and if it succeeded, it would edit all of those binaries to have those precalculated addresses in it, and then the next time when it put them in the same addresses, it didn't have to do any additional work. And that sped up launch a lot, but it meant that we were editing your binaries on every launch, and that's not great for all sorts of reasons, not the least of which is security. So then came dyld 2, and we shipped that as part of macOS Tiger.
+And **NeXTStep** had different proprietary extensions, so people wrote **third-party wrappers** on the early versions of **macOS 10** to support standard Unix software.
 
-And dyld 2 was a complete rewrite of dyld. It had correct support for C++ initializer semantics, so we slightly extended the mach-o format and we updated dyld so that we could get efficient C++ library support. It also has a full native dlopen and dlsym implementation with correct semantics, at which point we deprecated the Legacy API's. They are still on macOS. They have never shipped on any of our other platforms. It was designed for speed and because it was designed for speed, it had limited sanity checking. We did not have the malware environment we have today.
+**The problem was they didn't quite support the same semantics.**
 
-It also has security issues because of that, that we had to go back and retrofit in a number of features to make it safer on today's platforms.
+- There were some weird edge cases where it didn't work, and ultimately they were kind of slow.
+- It also was **written before most systems used large C++ dynamic libraries**, and this is important.
 
-Finally, because it was so much faster we could reduce the amount of prebinding. Rather than editing your applications, we just edited the system libraries and we could do that just at software update times. And if you've ever seen the phrase optimizing system performance appear in your software update, that was added to the installer to be displayed during the time we were updating prebinding. Nowadays it is used for all the optimizations, but that was the impetus. So we shipped dyld 2 back then and we've done a number of improvements over the years, significant improvements. First off, we've added a ton of more architectures and platforms. Since dyld 2 shipped on PowerPC, we've added x86, x86 64 arm, arm64, and a number of subvariants of those.
+**C++** has a number of features, such as how its **initializer** ordering works. **And one definition rule, they work well in a static environment, but are actually fairly hard to do, at least with good performance, in a dynamic environment**.
 
-We've also shipped iOS, tvOS, and watchOS, all of which required significant new work in dyld. We've improved security in a number of ways. We added codesigning support, we added some for ASLR, which is a technology Address Space Layout Randomization, which means that every time you loaded the libraries it may be at a different address. If you want more details on that, last year's talk where Nick went into extreme detail on how we launch an app, goes into that. And finally, we added a significant bounds checking to a number of things in the mach-o header so that you couldn't do certain types of attach with malformed binaries.
+So large C++ code bases cause the dynamic linker to have to do a lot of work and it was quite slow.
 
-Finally, we improved performance, and because we improved performance, we could get rid of prebinding and replace it with something called the shared cache. So what is the shared cache? Well, it was introduced in iOS 3.1 and macOS Snow Leopard, and it completely replaced prebinding.
+#### Prebinding
 
-It's a single file containing most of the system dylibs. And because we merged them into a single file, we can do certain types of optimizations. We can rearrange all of their text segments and all of their data segments and rewrite their entire symbol tables to reduce the size and to make it so we need to mount fewer regions in each process. It also allows us to pack binary segments and save a lot of RAM. It effectively is a prelinker for the dylibs. And while I'm not going to go into any particular optimizations here, the RAM savings are substantial. On an average iOS system, this is the difference in about 500 megs to a gigabyte of RAM at runtime.
+We also added one other feature before we shipped **macOS 10.0 Cheetah**, and that's called **prebinding**.
 
-It also prebuilds data structures that dyld and Ob-C are going to use at runtime so that we don't have to do it on launch. And again, that saves more RAM and a lot of time. It's built locally on macOS, so when you see optimizing system performance, we are running update dyld shared cache, among things that happen, but on all of our other platforms we actually build it at Apple and ship it to you. So now that I've talked about the shared cache, I want to move into dyld 3.
+And for those of you in the audience who know what prebinding is, I know it was kind of painful;
 
-dyld 3 is a brand-new dynamic linker, and we're announcing it today. It's a complete rethink of how we do dynamic linking and it's going to be on by default for most macOS system apps in this week's seed, and it will be on by default for all system apps on 2017 Apple OS platforms.
+and for the rest of you,
 
-We will completely replace dyld 2 in future Apple OS platforms for all third-party apps as well.
+- **prebinding was a technology where we would try to find fixed addresses for every dylib in the system and for your application**,
+- and **the dynamic loader would try to load everything at those addresses and if it succeeded, it would edit all of those binaries to have those precalculated addresses in it**,
+- and **then the next time when it put them in the same addresses, it didn't have to do any additional work**.
 
-So why did we rewrite the dynamic linker again? Well, first off, performance. In case that's not a recurring theme, we want every ounce of launch speed we can get. Additionally, we thought what is the minimum, what is the theoretical minimum that we could do to get an app up and running and how could we achieve that.
+And that sped up launch a lot, **but it meant that we were editing your binaries on every launch**, and that's not great for all sorts of reasons, **not the least of which is security**.
 
-Security. So as I said, we retrofitted a number of security features into dyld 2, but it's really hard to add that kind of stuff after the fact. I think we've done a good job with it in recent years, but it's really, really difficult to do that. And so can we have more aggressive security checking and be designed for security up front? Finally, testability and reliability. Can we make dyld easier to test? So Apple ships a ton of great testing frameworks, like XCTest, that you should be using, and we should be using, but they depend on low level features of dynamic linker to insert those libraries into processes, so they fundamentally cannot be used for testing the existing dyld code, and that also makes it harder for us to test security and performance features.
+So then came **dyld 2**, and we shipped that as part of **macOS Tiger**.
 
-And so how did we do that? Well, we've moved most of dyld out of process. It's now mostly just a regular daemon and we can test that just like everybody else does with standard testing tools, which is going to allow us to move even faster in the future in improving this. It also lets the bit of dyld that stays in process be as small as possible and that reduces the attack surface in your applications.
+### dyld 2
 
-It also speeds up launch because the fastest code is code you never write, followed closely by code you almost never execute.
+And **dyld 2** was a complete rewrite of dyld.
 
-So to tell you how we did this I'm going to briefly show how dyld 2 launches an app. And again, we went into this in much more detail in last year's talk, Optimizing App Startup Time, so if you want to pause, if you're watching this on video, and go watch that, that might be a good idea. Or if you just want to follow along here, I'm going to go through it briefly.
+**It had correct support for C++ initializer semantics**, so we slightly extended the **mach-o format** and we updated **dyld** so that we could get efficient C++ library support.
 
-So first off we have dyld 2 and your app starts launching. So we have to parse your mach-o, and as we parse your mach-o we find what libraries you need, and then they may have other libraries that they need, and we do that recursively until we have a complete graph of all your dylibs, and for an average graph of application on iOS that's between 3- and 600 dylibs, so it's a lot of them and a lot of work. We then map in all the mach-o files so we get them into your address space. We then perform symbol lookups, so we actually look and say if your application uses printf, we go and look and see that printf is in lib system, and we find the address of it and we basically copy that into a function pointer in your application.
+It also has a full native **dlopen** and **dlsym** implementation with correct semantics, at which point we deprecated the Legacy API's. They are still on macOS. They have never shipped on any of our other platforms.
 
-Then we do what's called binding and rebasing, which is where we copy those pointers in and we also -- because you're at a random address all of your pointers have to have that base address added to them. And then finally, we can run all of your initializers, which is what I showed the tooling for earlier, and at that point we're ready to call your main in launch, and that's a lot of work.
+#### Security issues
 
-So how can we make this faster and how can we move it out of process? Well, first off we identify the security sensitive components. And from our perspective the biggest ones of those are parsing mach-o headers and finding dependencies because malformed mach-o headers allow people to do certain attacks and your applications may use @rpaths, which are search paths, and by malforming those or inserting libraries in the right places, people can subvert applications. So we do all of that out of process in the daemon, and then we identify the expensive parts of it, which are cache-able, and those are the symbol lookups. Because in a given library, unless you perform the software update or change the library on disk, the symbols will always be at the same offset in that library. So we've identified these. Let me show you how they look in dyld 3.
+**It was designed for speed** and because it was designed for speed, **it had limited sanity checking**. We did not have the malware environment we have today.
 
-So we moved those all up front, at which point we write a closure to disk. So as I said earlier, a launch closure is everything you need to launch the app. And then we move it -- we can use that in process later. So dyld 3 is three components.
+It also has **security issues** because of that, that we had to go back and **retrofit** in a number of features to make it safer on today's platforms.
 
-It's an out-of-process mach-o parser and compiler.
+#### Reduce the amount of prebinding
 
-It's an in-process engine that runs launch closures, and it's a launch closer caching service.
+Finally, because it was so much faster we could reduce the amount of prebinding.
 
-Most launches use the cache and never have to invoke the out-of-process mach-o parser or compiler.
+**Rather than editing your applications, we just edited the system libraries and we could do that just at software update times.**
 
-And launch closures are much simpler than mach-o. They are memory map files we don't have to parse in any complicated way. We can validate them simply. They are built for speed. And so let's talk about each one of those parts a little bit more. So dyld 3 is an out-of-process mach-o parser. So what does that do? It resolves all the search paths, all the rpaths, all the environment variables that can affect your launch. Then it parses the mach-o binaries and it performs all of those symbol lookups.
+And if you've ever seen **the phrase optimizing system performance appear in your software update**, that was added to the installer to be displayed during the time we were **updating prebinding**.
 
-Finally, it creates the closure with the results, and it's that normal daemon so that we can get that improved testing infrastructure.
+Nowadays it is used for all the optimizations, but that was the impetus.
 
-dyld is a small in-process engine as well, and this is the part that will be in your process and this is what you will mostly see.
+### dyld 2.x
 
-So all it does is it validates that the launch closure is correct and then it just maps in the dylibs and jumps to main. And one of the things you may notice is it never needs to pars a mach-o header or perform a symbol lookup. We don't have to do those to launch your app anymore. And since that's where we're spending most of our time, it's going to result in much faster app launches for you.
+So we shipped dyld 2 back then and we've done a number of improvements over the years, significant improvements.
 
-Finally, dyld 3 is a launch closure caching service. So what does that mean? Well, system app closures we're just building directly into the shared cache. We already have this tool that runs and analyzes every mach-o in the system.
+#### More architectures and platforms
+
+First off, we've added a ton of more architectures and platforms.
+
+- Since dyld 2 shipped on **PowerPC**, we've added **x86, x86_64, arm, arm64**, and a number of subvariants of those.
+- We've also shipped **iOS, tvOS, and watchOS**, all of which required significant new work in dyld.
+
+#### Improved security
+
+We've improved **security** in a number of ways.
+
+- We added **codesigning** support,
+- we added some for **ASLR**, which is a technology **Address Space Layout Randomization**, which means that every time you loaded the libraries it may be at a different address. If you want more details on that, last year's talk where Nick went into extreme detail on how we launch an app, goes into that.
+- And finally, we added a significant **bounds checking** to a number of things in the **mach-o header** so that you couldn't do certain types of attach with malformed binaries.
+
+#### Improved performance
+
+Finally, we improved performance, and because we improved performance, we could **get rid of prebinding and replace it with something called the shared cache**.
+
+#### Shared Cache
+
+So what is the **shared cache**?
+
+Well, it was introduced in **iOS 3.1** and **macOS Snow Leopard**, and **it completely replaced prebinding**.
+
+**It's a single file containing most of the system dylibs.**
+
+And because we merged them into a single file, we can do certain types of optimizations.
+
+##### Rearranges binaries to improve load speed
+
+We can **rearrange** all of their **text segments** and all of their **data segments** and **rewrite** their entire **symbol tables** to **reduce the size** and to make it so we need to **mount fewer regions in each process**.
+
+##### Pre-links dylibs
+
+- It also allows us to **pack binary segments** and save a lot of RAM. It effectively is a **prelinker** for the dylibs.
+  - And while I'm not going to go into any particular optimizations here, the RAM savings are substantial.
+  - On an average iOS system, this is the difference in about **500 megs to a gigabyte of RAM at runtime**.
+
+##### Pre-builds data structures used by dyld and ObjC
+
+It also **prebuilds data structures that dyld and ObjC are going to use at runtime so that we don't have to do it on launch. And again, that saves more RAM and a lot of time.**
+
+- It's **built locally on macOS**, so when you see *optimizing system performance*, we are running *update dyld shared cache*, among things that happen,
+- **but on all of our other platforms we actually build it at Apple and ship it to you**.
+
+So now that I've talked about the shared cache, I want to move into dyld 3.
+
+### dyld 3
+
+**dyld 3** is a brand-new dynamic linker, and we're announcing it today.
+
+It's a complete rethink of how we do dynamic linking and it's going to be on by default for most macOS system apps in this week's seed, and **it will be on by default for all system apps on 2017 Apple OS platforms**.
+
+**We will completely replace dyld 2 in future Apple OS platforms for all third-party apps as well.**
+
+So why did we rewrite the dynamic linker again?
+
+#### Performance
+
+Well, first off, **performance**. In case that's not a recurring theme, we want every ounce of launch speed we can get.
+
+Additionally, we thought what is the **minimum**, what is the theoretical minimum that we could do to get an app up and running and how could we achieve that.
+
+#### Security
+
+**Security**. So as I said, we retrofitted a number of security features into dyld 2, but it's really hard to add that kind of stuff after the fact.
+
+I think we've done a good job with it in recent years, but it's really, really difficult to do that. And so can we have **more aggressive security checking and be designed for security up front**?
+
+#### Testability and Reliability
+
+Finally, **testability and reliability**. Can we make dyld easier to test?
+
+So Apple ships a ton of great testing frameworks, like **XCTest**, that you should be using, and we should be using, but they depend on low level features of dynamic linker to insert those libraries into processes, so they fundamentally cannot be used for testing the existing dyld code, and that also makes it harder for us to test security and performance features.
+
+And so how did we do that?
+
+Well, we've **moved most of dyld out of process**. **It's now mostly just a regular daemon** and we can test that just like everybody else does with standard testing tools, which is going to allow us to move even faster in the future in improving this.
+
+It also **lets the bit of dyld that stays in process be as small as possible and that reduces the attack surface in your applications**.
+
+**It also speeds up launch because the fastest code is code you never write, followed closely by code you almost never execute.**
+
+## How dyld 2 launches an app
+
+So to tell you how we did this I'm going to briefly show how dyld 2 launches an app.
+
+And again, we went into this in much more detail in last year's talk, *Optimizing App Startup Time*, so if you want to pause, if you're watching this on video, and go watch that, that might be a good idea. Or if you just want to follow along here, I'm going to go through it briefly.
+
+So first off we have **dyld 2** and your app starts launching.
+
+### Parse Mach-O Headers & Find Dependencies
+
+So we have to parse your **mach-o**, and as we **parse your mach-o** we find what libraries you need, and then they may have other libraries that they need, and we do that **recursively** until we have a complete graph of all your **dylibs**, and for an average graph of application on iOS that's **between 300 to 600 dylibs**, so it's a lot of them and a lot of work.
+
+### Map Mach-O files
+
+We then map in all the mach-o files so we get them into your address space.
+
+### Perform symbol lookups
+
+We then perform **symbol lookups**, so we actually look and say if your application uses **printf**, we go and look and see that printf is in **lib system**, and we **find the address of it and we basically copy that into a function pointer in your application**.
+
+### Bind and rebase
+
+Then we do what's called **binding and rebasing**, which is where we **copy those pointers in** and we also -- because you're at a random address all of your pointers have to **have that base address added to them**.
+
+### Run initializers
+
+And then **finally**, we can **run all of your initializers**, which is what I showed the tooling for earlier, and **at that point we're ready to call your main in launch**, and that's a lot of work.
+
+---
+
+So how can we make this faster and how can we move it out of process?
+
+Well, first off we identify the security sensitive components.
+
+And from our perspective the **biggest ones** of those are **parsing mach-o headers and finding dependencies**,
+
+because malformed **mach-o headers allow people to do certain attacks** and **your applications may use @rpaths, which are search paths, and by malforming those or inserting libraries in the right places, people can subvert applications**.
+
+**So we do all of that out of process in the daemon, and then we identify the expensive parts of it, which are cache-able, and those are the symbol lookups.**
+
+**Because in a given library, unless you perform the software update or change the library on disk, the symbols will always be at the same offset in that library.**
+
+So we've identified these. Let me show you how they look in dyld 3.
+
+## `dyld 3` is three components
+
+**So we moved those all up front, at which point we write a closure to disk.** So as I said earlier, **a launch closure is everything you need to launch the app**. And then we move it -- we can use that in process later. So **dyld 3 is three components**.
+
+- It's **an out-of-process mach-o parser and compiler**.
+- It's **an in-process engine that runs launch closures**,
+- and **it's a launch closure caching service**.
+
+**Most launches use the cache and never have to invoke the out-of-process mach-o parser or compiler.**
+
+And **launch closures are much simpler than mach-o**. **They are memory map files we don't have to parse in any complicated way. We can validate them simply. They are built for speed.**
+
+And so let's talk about each one of those parts a little bit more.
+
+### `dyld 3` is an out-of-process mach-o parser
+
+So dyld 3 is an out-of-process mach-o parser. So what does that do?
+
+- It **resolves** all the **search paths**, all the **@rpaths**, all the **environment variables** that can affect your launch.
+- Then it **parses the mach-o binaries**
+- and it performs all of those **symbol lookups**.
+- Finally, it **creates the closure with the results**,
+- and it's that **normal daemon** so that we can get that improved testing infrastructure.
+
+### `dyld 3` is a small in-process engine
+
+**dyld 3 is a small in-process engine** as well, and **this is the part that will be in your process and this is what you will mostly see.**
+
+So all it does is
+
+- it **validates that the launch closure** is correct
+- and then it just **maps in the dylibs**
+- and **jumps to main**.
+
+And one of the things you may notice is **it never needs to parse a mach-o header or perform a symbol lookup**. We don't have to do those to launch your app anymore.
+
+And since that's where we're spending most of our time, it's going to result in much faster app launches for you.
+
+### `dyld 3` is a launch closure cache
+
+Finally, **dyld 3 is a launch closure caching service.**
+
+So what does that mean?
+
+#### System app
+
+Well, **system app closures we're just building directly into the shared cache**. We already have this tool that runs and analyzes every mach-o in the system.
 
 We can just put them directly into the shared cache, so it's mapped in with all the dylibs to start with. We don't even need to open another file.
 
-For third-party apps we're going to build your closure during app install or system updates because at that point the system library has changed. So by default these will all be prebuilt for you on iOS and tvOS and watchOS before you even run.
+#### Third-party app
 
-On macOS, because you can side load applications, the in-process engine can RPC out to the daemon if necessary on first launch, and then after that it will be able to use a cached closure just like everything else.
+For third-party apps we're going to **build your closure during app install or system updates because at that point the system library has changed**.
+
+So by default **these will all be prebuilt for you on iOS and tvOS and watchOS before you even run**.
+
+#### macOS: side load applications
+
+On macOS, because you can **side load applications**, the **in-process engine** can **RPC** out to the **daemon** if necessary on first launch, and then **after that it will be able to use a cached closure just like everything else**.
 
 But like I said, that is not necessary on any of our other platforms.
+
+## Preparing for dyld 3
+
+### `dyld 3` Potential issues
 
 So now that I've talked about this dynamic linker that we'll be using for system apps this year and for your apps in the future, I want to talk to you about some potential issues you might see with it so that you can start updating your apps for it now.
 
