@@ -53,6 +53,11 @@
       - [macOS: side load applications](#macos-side-load-applications)
   - [Preparing for dyld 3](#preparing-for-dyld-3)
     - [`dyld 3` Potential issues](#dyld-3-potential-issues)
+      - [Fully compatible with dyld 2.x](#fully-compatible-with-dyld-2x)
+      - [Stricter linking semantics](#stricter-linking-semantics)
+    - [Unaligned pointers](#unaligned-pointers)
+      - [Demo: Unaligned pointers](#demo-unaligned-pointers)
+    - [Eager symbol resolution](#eager-symbol-resolution)
 
 Hello everybody.
 
@@ -448,19 +453,82 @@ But like I said, that is not necessary on any of our other platforms.
 
 So now that I've talked about this dynamic linker that we'll be using for system apps this year and for your apps in the future, I want to talk to you about some potential issues you might see with it so that you can start updating your apps for it now.
 
-So first off, it is fully compatible with dyld 2.x. So some existing API's will cause you to run slower or use fallback modes in dyld 3 though, so we'd like you to avoid those, and we'll go into those in a second. Also, some existing optimizations that you are doing may not be necessary anymore, so you don't have to rip them out but, you know, it may not be worth putting in a lot of effort. The other thing I want to talk about is that we're going to have stricter linking semantics. So what do I mean by that? Well, there's a lot of things that maybe work most of the time, but aren't actually correct even today and so we've identified a lot of those. As we've been putting the new dynamic linker in, that tends to find all these edge cases. So what we've been doing is we've been putting in workarounds for old binaries, but we do not intend to carry those forward. We will do linked on or after checks to see what SDK you were built with and we will disable those workarounds for new binaries so that you move to these improved -- you fix these issues.
+#### Fully compatible with dyld 2.x
 
-So new binaries will cause linker issues. So, first off, I want to talk about unaligned pointers in your data segments. So what do I mean by this? Well, when you have a global structure that points to a function or another global structure, that's a pointer that we have to fix up before you launch, and pointers must be naturally aligned on our system for best performance. And fixing up unaligned pointers is much more complex. They can span multiple pages, which can cause more page faults and other issues, and they can have atomicity issues related to multiprocessors.
+So first off, **it is fully compatible with dyld 2.x**.
 
-The static linker already emits a warning for this, ld warning, pointer not aligned at address, and that's an address, often your data segments. And if you're fixing all warnings, you should -- hopefully you've already taken care of this. The seeds that we have out this week have some issues with Swift keypaths, but they will be fixed so you can ignore those, but other than that, please go and fix these issues. So for those of you who are asking how would you get something like this, I'm going to just show you real quick. If you don't know how, it takes a lot of work. You can't do it in Swift. So again, use more Swift. This code here will do it, so let me show you what's going on.
+- So **some existing API's will cause you to run slower or use fallback modes** in dyld 3 though, so we'd like you to avoid those, and we'll go into those in a second.
+- Also, **some existing optimizations that you are doing may not be necessary anymore**, so you don't have to rip them out but, you know, it may not be worth putting in a lot of effort.
 
-First off, I have attributes forcing specific alignment. So by default the compiler's going to align it correctly for you. But sometimes you may need special alignments and this case I've said change whatever the default alignment rules are to one, and I've done that in two different ways just to be really, really bad, so you have to fix both of these. Then I constructed a global variable. That global variable sets a pointer in with the structures and that's going to force the dynamic linker to fix up that pointer on launch. So if you see code like this, you can just remove the alignments. You could rearrange the structure so that the pointer goes first, because that's a better alignment thing. And there's plenty of guides online about C structure alignment if you want to get into the nitty-gritty, but hopefully you don't have to deal with this, and if you write Swift, you definitely don't have to.
+#### Stricter linking semantics
 
-So next off, eager symbol resolution. So what do I mean by this? So dyld 2 performs what we call lazy symbol resolution. So I said up front that dyld has to load all those symbols and that's something expensive that we want to cache. It's actually too expensive to run up front on existing applications. It would take too long. So instead, we use a mechanism we call lazy symbol resolution, where, by default, the function pointer in your binary for, let's say, printf, doesn't point to printf. By default it points to a function in dyld that returns a function pointer to printf. And so when we launch, you'll call printf, it goes into dyld, we return what we call the printf and call it on your behalf the first time and then on the second time you go straight to printf.
+The other thing I want to talk about is that we're going to have **stricter linking semantics**.
 
-But since we are caching and calculating all these symbols up front now, there's no additional cost at app launch time to find them all up front, so we are going to do that. Now, having said that, missing symbols behave differently when you do this. On existing lazy systems, if you are missing a symbol, the first call -- you'll launch correctly and the first time you call that symbol, you'll crash. With eager symbols you'll crash up front.
+So what do I mean by that?
 
-So we do have a compatibility mode for this, and the way we're going to do that is that we are going to just have a symbol inside dyld 3 that automatically crashes, and if we can't find your symbol, we will bind that symbol, so on first call you will crash. But again, that's how it works on today's SDK. If future SDK's we are going to force all symbol resolution to be up front. So if you are missing a symbol, you will crash, and that should hopefully result in you discovering crashes during development instead of your users discovering them at runtime. And you can simulate that behavior now today. There's a special linker flag which is dyld bind at load, so if you add this to your debug build, as I said, it's much slower, so please only put it in your debug builds, but add this to your debug builds and you'll get more reliable behavior today and it will get you ready for what we're going to be doing in dyld 3.
+Well, there's a lot of things that maybe work most of the time, but aren't actually correct even today and so we've identified a lot of those.
+
+As we've been putting the new dynamic linker in, that tends to find all these **edge cases**.
+
+- So what we've been doing is we've been **putting in workarounds for old binaries**, but we do not intend to carry those forward.
+- We will do linked on or after checks to see what SDK you were built with and we **will disable those workarounds for new binaries** so that you move to these improved -- you fix these issues.
+
+**So new binaries will cause linker issues.**
+
+### Unaligned pointers
+
+So, first off, I want to talk about **unaligned pointers** in your **data segments**.
+
+So what do I mean by this?
+
+Well, when you have **a global structure that points to a function or another global structure, that's a pointer that we have to fix up before you launch, and pointers must be naturally aligned on our system for best performance**.
+
+And **fixing up unaligned pointers is much more complex**.
+
+**They can span multiple pages, which can cause more page faults and other issues, and they can have atomicity issues related to multiprocessors.**
+
+**The static linker already emits a warning for this, ld warning, pointer not aligned at address, and that's an address, often your data segments.**
+
+And if you're fixing all warnings, you should -- hopefully you've already taken care of this. The seeds that we have out this week have some issues with **Swift keypaths**, but they will be fixed so you can ignore those, but other than that, please go and fix these issues.
+
+#### Demo: Unaligned pointers
+
+So for those of you who are asking how would you get something like this, I'm going to just show you real quick.
+
+If you don't know how, it takes a lot of work. **You can't do it in Swift. So again, use more Swift.** This code here will do it, so let me show you what's going on.
+
+---
+
+First off, I have **attributes forcing specific alignment**. So by default the compiler's going to align it correctly for you. But sometimes you may need special alignments and this case I've said **change whatever the default alignment rules are to one**, and I've done that in two different ways just to be really, really bad, so you have to fix both of these.
+
+Then I constructed a **global variable**. That global variable sets a pointer in with the structures and that's going to force the dynamic linker to fix up that pointer on launch.
+
+So if you see code like this, you can just remove the alignments. You could rearrange the structure so that the pointer goes first, because that's a better alignment thing.
+
+And there's plenty of guides online about **C structure alignment** if you want to get into the **nitty-gritty**, but hopefully you don't have to deal with this, and if you write Swift, you definitely don't have to.
+
+### Eager symbol resolution
+
+So next off, **eager symbol resolution**.
+
+So what do I mean by this?
+
+So **dyld 2 performs what we call lazy symbol resolution**.
+
+So I said up front that dyld has to load all those symbols and that's something expensive that we want to cache. It's actually too expensive to run up front on existing applications. It would take too long.
+
+So instead, we use a mechanism we call **lazy symbol resolution**, where, by default, the function pointer in your binary for, let's say, **printf**, doesn't point to printf. **By default it points to a function in dyld that returns a function pointer to printf.** And so when we launch, you'll call printf, it goes into dyld, we return what we call the printf and call it on your behalf the first time and then on the second time you go straight to printf.
+
+**But since we are caching and calculating all these symbols up front now, there's no additional cost at app launch time to find them all up front**, so we are going to do that.
+
+Now, having said that, missing symbols behave differently when you do this.
+
+- **On existing lazy systems**, if you are missing a symbol, the first call -- **you'll launch correctly and the first time you call that symbol, you'll crash**.
+- **With eager symbols you'll crash up front**.
+
+So we do have a compatibility mode for this, and the way we're going to do that is that we are going to **just have a symbol inside dyld 3 that automatically crashes, and if we can't find your symbol, we will bind that symbol, so on first call you will crash.**
+
+But again, that's how it works on today's SDK. If future SDK's we are going to force all symbol resolution to be up front. So if you are missing a symbol, you will crash, and that should hopefully result in you discovering crashes during development instead of your users discovering them at runtime. And you can simulate that behavior now today. There's a special linker flag which is dyld bind at load, so if you add this to your debug build, as I said, it's much slower, so please only put it in your debug builds, but add this to your debug builds and you'll get more reliable behavior today and it will get you ready for what we're going to be doing in dyld 3.
 
 Again, only use that in your test builds.
 
@@ -478,4 +546,4 @@ Fix any unaligned pointers in your data segments. Again, this warning is there. 
 
 Please file bug reports using DYLD USAGE in their titles so that they get to us so that we can find out all of your usage cases that we need to support. And for more information, you can go to this URL.
 
-Related sessions. So last year we did Optimizing App Startup Time, so you may want to go and watch that for a refresher on how traditional dynamic linking works. It goes into much more detail than I did here since I was trying to discuss all the new stuff we're doing. So thank you everybody for coming. 
+Related sessions. So last year we did Optimizing App Startup Time, so you may want to go and watch that for a refresher on how traditional dynamic linking works. It goes into much more detail than I did here since I was trying to discuss all the new stuff we're doing. So thank you everybody for coming.
