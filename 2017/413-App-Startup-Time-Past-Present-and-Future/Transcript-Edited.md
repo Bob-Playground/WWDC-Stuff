@@ -19,12 +19,12 @@
       - [Swift does not have initializers](#swift-does-not-have-initializers)
       - [Swift size improvements](#swift-size-improvements)
   - [Instruments: Static Initializer Tracing](#instruments-static-initializer-tracing)
-    - [Demo](#demo)
+    - [Demo: Static Initializer Usage](#demo-static-initializer-usage)
   - [A brief history of dyld](#a-brief-history-of-dyld)
     - [dyld 1](#dyld-1)
       - [Prebinding](#prebinding)
     - [dyld 2](#dyld-2)
-      - [Security issues](#security-issues)
+      - [Security issues: limited sanity checking](#security-issues-limited-sanity-checking)
       - [Reduce the amount of prebinding](#reduce-the-amount-of-prebinding)
     - [dyld 2.x](#dyld-2x)
       - [More architectures and platforms](#more-architectures-and-platforms)
@@ -38,7 +38,7 @@
       - [Performance](#performance)
       - [Security](#security)
       - [Testability and Reliability](#testability-and-reliability)
-  - [How dyld 2 launches an app](#how-dyld-2-launches-an-app)
+  - [How `dyld 2` launches an app](#how-dyld-2-launches-an-app)
     - [Parse Mach-O Headers & Find Dependencies](#parse-mach-o-headers--find-dependencies)
     - [Map Mach-O files](#map-mach-o-files)
     - [Perform symbol lookups](#perform-symbol-lookups)
@@ -51,13 +51,18 @@
       - [System app](#system-app)
       - [Third-party app](#third-party-app)
       - [macOS: side load applications](#macos-side-load-applications)
-  - [Preparing for dyld 3](#preparing-for-dyld-3)
-    - [`dyld 3` Potential issues](#dyld-3-potential-issues)
+  - [Preparing for `dyld 3`](#preparing-for-dyld-3)
+    - [`dyld 3` potential issues](#dyld-3-potential-issues)
       - [Fully compatible with dyld 2.x](#fully-compatible-with-dyld-2x)
       - [Stricter linking semantics](#stricter-linking-semantics)
     - [Unaligned pointers](#unaligned-pointers)
       - [Demo: Unaligned pointers](#demo-unaligned-pointers)
     - [Eager symbol resolution](#eager-symbol-resolution)
+      - [Linker Flag: _bind_at_load](#linker-flag-_bind_at_load)
+    - [dlopen, dlsym and dladdr](#dlopen-dlsym-and-dladdr)
+    - [dlclose](#dlclose)
+    - [all_image_infos](#all_image_infos)
+  - [Best practices](#best-practices)
 
 Hello everybody.
 
@@ -148,7 +153,7 @@ So, yes, this is pretty exciting stuff because **initializers are code that have
 
 So they're available through Instruments and they **provide precise timing for each static initializer**.
 
-### Demo
+### Demo: Static Initializer Usage
 
 So with that, I'd like to go to a demo right now. So over here I have an application, and as most applications at WWDC are, it's a way of sharing cute pictures of animals.
 
@@ -237,7 +242,7 @@ And **dyld 2** was a complete rewrite of dyld.
 
 It also has a full native **dlopen** and **dlsym** implementation with correct semantics, at which point we deprecated the Legacy API's. They are still on macOS. They have never shipped on any of our other platforms.
 
-#### Security issues
+#### Security issues: limited sanity checking
 
 **It was designed for speed** and because it was designed for speed, **it had limited sanity checking**. We did not have the malware environment we have today.
 
@@ -341,11 +346,11 @@ It also **lets the bit of dyld that stays in process be as small as possible and
 
 **It also speeds up launch because the fastest code is code you never write, followed closely by code you almost never execute.**
 
-## How dyld 2 launches an app
+## How `dyld 2` launches an app
 
 So to tell you how we did this I'm going to briefly show how dyld 2 launches an app.
 
-And again, we went into this in much more detail in last year's talk, *Optimizing App Startup Time*, so if you want to pause, if you're watching this on video, and go watch that, that might be a good idea. Or if you just want to follow along here, I'm going to go through it briefly.
+And again, we went into this in much more detail in last year's talk, **Optimizing App Startup Time**, so if you want to pause, if you're watching this on video, and go watch that, that might be a good idea. Or if you just want to follow along here, I'm going to go through it briefly.
 
 So first off we have **dyld 2** and your app starts launching.
 
@@ -447,9 +452,9 @@ On macOS, because you can **side load applications**, the **in-process engine** 
 
 But like I said, that is not necessary on any of our other platforms.
 
-## Preparing for dyld 3
+## Preparing for `dyld 3`
 
-### `dyld 3` Potential issues
+### `dyld 3` potential issues
 
 So now that I've talked about this dynamic linker that we'll be using for system apps this year and for your apps in the future, I want to talk to you about some potential issues you might see with it so that you can start updating your apps for it now.
 
@@ -528,22 +533,74 @@ Now, having said that, missing symbols behave differently when you do this.
 
 So we do have a compatibility mode for this, and the way we're going to do that is that we are going to **just have a symbol inside dyld 3 that automatically crashes, and if we can't find your symbol, we will bind that symbol, so on first call you will crash.**
 
-But again, that's how it works on today's SDK. If future SDK's we are going to force all symbol resolution to be up front. So if you are missing a symbol, you will crash, and that should hopefully result in you discovering crashes during development instead of your users discovering them at runtime. And you can simulate that behavior now today. There's a special linker flag which is dyld bind at load, so if you add this to your debug build, as I said, it's much slower, so please only put it in your debug builds, but add this to your debug builds and you'll get more reliable behavior today and it will get you ready for what we're going to be doing in dyld 3.
+But again, that's how it works on today's SDK. If future SDK's we are going to force all symbol resolution to be up front. So if you are missing a symbol, you will crash, and that should hopefully result in you discovering crashes during development instead of your users discovering them at runtime.
+
+#### Linker Flag: _bind_at_load
+
+And you can simulate that behavior now today. There's a special **linker flag** which is dyld **_bind_at_load**, so if you add this to your debug build, as I said, **it's much slower, so please only put it in your debug builds**, but add this to your debug builds and you'll get more reliable behavior today and it will get you ready for what we're going to be doing in dyld 3.
 
 Again, only use that in your test builds.
 
-Dlopen, dlsym and dladdr. So last year I got up here and said please don't use them unless you have to, but we understand that you may have to, and that's the same thing I'm saying this year. They have some problematic semantics, but they are still necessary in some cases. Particularly, symbols found with dlsym, we need to find it at runtime. We don't know ahead of time what they are. We can't do all that prefetching and presearching. So as soon as you use dlopen or dlsym, we're going and we're reading in all the pages for your symbol table that we didn't have to touch before. So it's going to be a lot more expensive. Additionally, we might have to RPC out to the daemon, depending on how complicated it is. So we're working on some better alternatives. We don't have those yet. But we also need to hear about your use cases to make sure we're designing something that will work for you. So please, again, they're not going away, but they will be slower and we want your feedback. I want to take a second to talk about dlclose specifically. And so dlclose is a bit of a misnomer. It's a Unix API, so that's the name, but on our system, if we had been writing it, it probably would be called dlrelease because it doesn't actually close the dylib. It decrements a refcount and if the refcount hits zero, it closes it. And why is that important? Well, it's not appropriate for resource management. If you have a library that attaches to a piece of hardware, you shouldn't shut down the hardware in response to a dlclose because some other code in your app may have opened it behind your back and so now your hardware's not shutting down. You should have explicit resource management. There are also a number of features on our platforms that prevent dylibs from unloading, and I'd like to go through a few of those because maybe you do them. You can have Objective-C classes in your dylib. That will make it not unloadable.
+### dlopen, dlsym and dladdr
 
-You could have Swift classes. That will also make it not unloadable. And you can have C under bar thread or C++ thread local variables, all of which make it impossible to unload a dylib. So on macOS, where there's a number of existing Unix apps, obviously we will keep this working, but because almost every dylib on all of our other platforms does one of these things, effectively it hasn't really worked on any of them ever. So we are considering making it just a straight up no-op, that will not do anything on any of those platforms. If there's a reason why that's a problem, please, we want to hear about it. Finally, I want to talk about the dyld all image infos. So this is an interface for introspecting dylibs in a process, and it comes from the original dyld 1.
+**dlopen, dlsym and dladdr**. So last year I got up here and said please **don't use them unless you have to**, but we understand that you may have to, and that's the same thing I'm saying this year.
 
-But it's just a struct in memory, it's not an API, and that was okay when we had five, ten dylibs. But as we've gotten to 300, 400, 500 dylibs, the way it's designed wastes a lot of memory, and we want that memory back. We always want our performance and we always want our memory.
+**They have some problematic semantics**, but they are still necessary in some cases.
 
-So we're going to take it away in future releases, but we will be providing replacement API's for it. And so it's very rarely used, but if you're using it, again, I want to know why you're using it and how you're using it and make sure we design API's that fit your use case. There are a number of bits of it that are vestigial and don't quite do what you expect or work anyway today, so if you aren't using those, they may just go away and we need to hear about that.
+**Particularly, symbols found with dlsym, we need to find it at runtime**. We don't know ahead of time what they are. We can't do all that prefetching and presearching.
 
-So please let us know how you use it. So finally, let's talk about best practices. First, make sure you launch your app with bind at load in your LD FLAGS for debug builds only.
+**So as soon as you use dlopen or dlsym, we're going and we're reading in all the pages for your symbol table that we didn't have to touch before.** So it's going to be a lot more expensive.
 
-Fix any unaligned pointers in your data segments. Again, this warning is there. You should try to be fixing all of your warnings. If you see it with the new Swift keypath feature, you can ignore that because we'll fix that. You can make sure you are not depending on any terminators running when you call dlclose. And we want you to let us know why you're using dlopen, dlsym, dladdr, and the all image info structures to make sure that our replacements are going to suit your needs. In the case of the ones that are part of POSIX, they will stay around, they will just be lower performance. In the case of all image infos, it is going to go away to save that memory.
+**Additionally**, we might have to **RPC out to the daemon**（Remote Procedure Call？远程过程调用？）, depending on how complicated it is.
 
-Please file bug reports using DYLD USAGE in their titles so that they get to us so that we can find out all of your usage cases that we need to support. And for more information, you can go to this URL.
+So we're working on some better alternatives. We don't have those yet. But we also need to hear about your use cases to make sure we're designing something that will work for you. So please, again, they're not going away, but they will be slower and we want your feedback.
 
-Related sessions. So last year we did Optimizing App Startup Time, so you may want to go and watch that for a refresher on how traditional dynamic linking works. It goes into much more detail than I did here since I was trying to discuss all the new stuff we're doing. So thank you everybody for coming.
+### dlclose
+
+I want to take a second to talk about **dlclose** specifically. And so **dlclose is a bit of a misnomer**. It's a **Unix API**, so that's the name, but on our system, **if we had been writing it, it probably would be called dlrelease because it doesn't actually close the dylib. It decrements a refcount and if the refcount hits zero, it closes it.**
+
+And why is that important?
+
+Well, it's not appropriate for resource management. If you have a library that attaches to a piece of hardware, you shouldn't shut down the hardware in response to a dlclose because some other code in your app may have opened it behind your back and so now your hardware's not shutting down. You should have explicit resource management.
+
+There are also a number of features on our platforms that prevent dylibs from unloading, and I'd like to go through a few of those because maybe you do them.
+
+- You can have Objective-C classes in your dylib. That will make it not unloadable.
+- You could have Swift classes. That will also make it not unloadable.
+- And you can have **C under bar thread** or **C++ thread local variables**, all of which make it impossible to unload a dylib.
+
+So on **macOS**, where there's a number of existing **Unix apps**, obviously we will keep this working, but because **almost every dylib on all of our other platforms does one of these things**, effectively it hasn't really worked on any of them ever.
+
+So we are considering **making it just a straight up no-op, that will not do anything on any of those platforms**. If there's a reason why that's a problem, please, we want to hear about it.
+
+### all_image_infos
+
+Finally, I want to talk about the dyld **all_image_infos**. So this is **an interface for introspecting dylibs in a process, and it comes from the original dyld 1**.
+
+But **it's just a struct in memory, it's not an API**, and **that was okay when we had five, ten dylibs. But as we've gotten to 300, 400, 500 dylibs, the way it's designed wastes a lot of memory**, and we want that memory back. We always want our performance and we always want our memory.
+
+So we're going to take it away in future releases, but we will be providing replacement API's for it. And so it's very rarely used, but if you're using it, again, I want to know why you're using it and how you're using it and make sure we design API's that fit your use case.
+
+There are a number of bits of it that are **vestigial** and don't quite do what you expect or work anyway today, so if you aren't using those, they may just go away and we need to hear about that. So please let us know how you use it.
+
+## Best practices
+
+So finally, let's talk about best practices.
+
+First, make sure you launch your app with **_bind_at_load** in your **LD FLAGS**（Other linker flags） for **debug builds only**.
+
+Fix any unaligned pointers in your data segments. Again, this warning is there. You should try to be fixing all of your warnings.
+
+If you see it with the new Swift keypath feature, you can ignore that because we'll fix that.
+
+You can make sure you are not depending on any terminators running when you call dlclose.
+
+And **we want you to let us know why you're using dlopen, dlsym, dladdr, and the all_image_infos structures** to make sure that our replacements are going to suit your needs.
+
+In the case of the ones that are part of **POSIX**, they will stay around, **they will just be lower performance**. In the case of **all_image_infos**, it is going to go away to save that memory.
+
+Please file bug reports using **DYLD USAGE** in their titles so that they get to us so that we can find out all of your usage cases that we need to support.
+
+And for more information, you can go to this URL. Related sessions. So last year we did **Optimizing App Startup Time**, so you may want to go and watch that for a refresher on how **traditional dynamic linking** works. It goes into much more detail than I did here since I was trying to discuss all the new stuff we're doing.
+
+So thank you everybody for coming.
