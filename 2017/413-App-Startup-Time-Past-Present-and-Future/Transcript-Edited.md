@@ -1,10 +1,10 @@
-# WWDC 2017 / 413: < App Startup Time: Past, Present, and Future >
+# WWDC 2017 / 413: \<App Startup Time: Past, Present, and Future\>
 
 <https://developer.apple.com/videos/play/wwdc2017/413/>
 
 ---
 
-- [WWDC 2017 / 413: < App Startup Time: Past, Present, and Future >](#wwdc-2017--413--app-startup-time-past-present-and-future-)
+- [WWDC 2017 / 413: \<App Startup Time: Past, Present, and Future\>](#wwdc-2017--413-app-startup-time-past-present-and-future)
   - [Overview](#overview)
   - [Preamble](#preamble)
     - [Terminology](#terminology)
@@ -66,7 +66,7 @@
 
 Hello everybody.
 
-Thanks for coming out this morning. I'm **Louis Gerbarg**. I work on the **dyld Team**, and today we're going to talk about *App Startup, Past, Present and Future*.
+Thanks for coming out this morning. I'm **Louis Gerbarg**. I work on the **dyld Team**, and today we're going to talk about *App Startup: Past, Present and Future*.
 
 So we got a lot to go through, so I'm just going to get into it.
 
@@ -94,7 +94,7 @@ So first off, what does startup time mean?
 
 #### Startup time
 
-And **startup time for the purposes of this talk means time spent before main**.
+And **startup time for the purposes of this talk means time spent before main()**.
 
 Now, if you are writing an app, you have to do more than that. After that happens, there will be *nib loading* and other things like that and you have codes to run after you -- in *UI application delegates* and what not, but you have more visibility into that and there are many other talks about that.
 
@@ -104,7 +104,11 @@ Now, if you are writing an app, you have to do more than that. After that happen
 
 Additionally, I want to define a launch closure, and this is a new term.
 
-**And a launch closure is all of the information necessary to launch your application. So what dylibs it uses, what the offsets in them are for various symbols, where their code signatures are.**
+**And a launch closure is all of the information necessary to launch your application:**
+
+- So what **dylibs** it uses,
+- what the **offsets** in them are for various **symbols**,
+- where their **code signatures** are.
 
 ## Improving App Startup Time
 
