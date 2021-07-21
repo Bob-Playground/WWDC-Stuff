@@ -1,10 +1,10 @@
-# WWDC 2017 / 413: \<App Startup Time: Past, Present, and Future\>
+# WWDC17 - Session413: \<App Startup Time: Past, Present, and Future\>
 
 <https://developer.apple.com/videos/play/wwdc2017/413/>
 
 ---
 
-- [WWDC 2017 / 413: \<App Startup Time: Past, Present, and Future\>](#wwdc-2017--413-app-startup-time-past-present-and-future)
+- [WWDC17 - Session413: \<App Startup Time: Past, Present, and Future\>](#wwdc17---session413-app-startup-time-past-present-and-future)
   - [Overview](#overview)
   - [Preamble](#preamble)
     - [Terminology](#terminology)
@@ -12,12 +12,7 @@
       - [Launch closure](#launch-closure)
   - [Improving App Startup Time](#improving-app-startup-time)
     - [Do less](#do-less)
-    - [Embed fewer dylibs](#embed-fewer-dylibs)
-    - [Declare fewer classes/methods](#declare-fewer-classesmethods)
-    - [Use fewer initializers](#use-fewer-initializers)
     - [Use more Swift](#use-more-swift)
-      - [Swift does not have initializers](#swift-does-not-have-initializers)
-      - [Swift size improvements](#swift-size-improvements)
   - [Instruments: Static Initializer Tracing](#instruments-static-initializer-tracing)
     - [Demo: Static Initializer Usage](#demo-static-initializer-usage)
   - [A brief history of dyld](#a-brief-history-of-dyld)
@@ -120,32 +115,17 @@ So last year I said **do less**, and I'm going to say that again this year and I
 
 And the advice is basically the same.
 
-### Embed fewer dylibs
-
-You should use fewer dylibs, if you can, you should **embed fewer dylibs**. System ones are better in certain ways from a time perspective, and we'll go into that.
-
-### Declare fewer classes/methods
-
-You should **declare fewer classes and methods**
-
-### Use fewer initializers
-
-and you should **run fewer initializers**.
+- You should use fewer dylibs, if you can, you should **embed fewer dylibs**. System ones are better in certain ways from a time perspective, and we'll go into that.
+- You should **declare fewer classes and methods**
+- and you should **run fewer initializers**.
 
 ### Use more Swift
 
 Finally, I'm going to tell you you can do a little bit more of something. You can **use more Swift**, and the reason is Swift is designed in such a way that **it avoids a lot of pitfalls that C, C++ and Objective-C allow you to do**.
 
-#### Swift does not have initializers
-
 - **Swift does not have initializers**.
-- **Swift does not allow certain types of misaligned data structures** that cost us time in launch.
-
-So, in general, moving to Swift will make it easier for you to get very responsive app startup.
-
-#### Swift size improvements
-
-So also, there are the Swift size improvements and smaller is better, so please move to this new Swift that we've shipped this year with the size improvements and that's going to help you out.
+- **Swift does not allow certain types of misaligned data structures** that cost us time in launch. So, in general, moving to Swift will make it easier for you to get very responsive app startup.
+- So also, there are the **Swift size improvements** and smaller is better, so please move to this new Swift that we've shipped this year with the size improvements and that's going to help you out.
 
 ## Instruments: Static Initializer Tracing
 
