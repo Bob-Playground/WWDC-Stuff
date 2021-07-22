@@ -189,7 +189,9 @@ And this was **dyld 1** and it shipped as part of **NeXTStep 3.3** back in **199
 
 **Before that, NeXT used static binaries.**
 
-And it's worth noting this predates the **POSIX dlopen** calls being standardized. Now, `dlopen` did exist on some Unix. They were proprietary extensions that later people adopted.
+And it's worth noting this predates the **POSIX dlopen** calls being standardized.
+
+Now, `dlopen` did exist on some Unix. They were proprietary extensions that later people adopted.
 
 And **NeXTStep** had different proprietary extensions, so people wrote **third-party wrappers** on the early versions of **macOS 10** to support standard Unix software.
 
