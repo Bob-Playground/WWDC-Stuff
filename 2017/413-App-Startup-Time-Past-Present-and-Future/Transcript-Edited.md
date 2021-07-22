@@ -216,9 +216,9 @@ and for the rest of you,
 
 And that sped up launch a lot, **but it meant that we were editing your binaries on every launch**, and that's not great for all sorts of reasons, **not the least of which is security**.
 
-So then came **dyld 2**, and we shipped that as part of **macOS Tiger**.
-
 ### dyld 2
+
+So then came **dyld 2**, and we shipped that as part of **macOS Tiger**.
 
 And **dyld 2** was a complete rewrite of dyld.
 
@@ -298,11 +298,13 @@ So now that I've talked about the shared cache, I want to move into dyld 3.
 
 **dyld 3** is a brand-new dynamic linker, and we're announcing it today.
 
-It's a complete rethink of how we do dynamic linking and it's going to be on by default for most macOS system apps in this week's seed, and **it will be on by default for all system apps on 2017 Apple OS platforms**.
+It's a complete rethink of how we do dynamic linking and
 
-**We will completely replace dyld 2 in future Apple OS platforms for all third-party apps as well.**
+- it's going to be on by default for most macOS system apps in this week's seed,
+- and **it will be on by default for all system apps on 2017 Apple OS platforms**.
+- **We will completely replace dyld 2 in future Apple OS platforms for all third-party apps as well.**
 
-So why did we rewrite the dynamic linker again?
+**So why did we rewrite the dynamic linker again?**
 
 #### Performance
 
