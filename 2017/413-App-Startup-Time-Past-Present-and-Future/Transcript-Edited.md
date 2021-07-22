@@ -133,7 +133,7 @@ So now let me talk about some new tooling we have.
 
 So new in **iOS 11** and **macOS High Sierra**, we've added **Static Initializer Tracing** to **Instruments**.
 
-So, yes, this is pretty exciting stuff because **initializers are code that have to run before main** to set up objects for you, and you haven't had much visibility into what happens before main.
+So, yes, this is pretty exciting stuff because **initializers are code that have to run before main to set up objects** for you, and you haven't had much visibility into what happens before main.
 
 So they're available through Instruments and they **provide precise timing for each static initializer**.
 
