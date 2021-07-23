@@ -18,7 +18,7 @@
   - [A brief history of dyld](#a-brief-history-of-dyld)
     - [dyld 1](#dyld-1)
       - [Prebinding](#prebinding)
-    - [dyld 2](#dyld-2)
+    - [dyld 2.0](#dyld-20)
       - [Security issues: limited sanity checking](#security-issues-limited-sanity-checking)
       - [Reduce the amount of prebinding](#reduce-the-amount-of-prebinding)
     - [dyld 2.x](#dyld-2x)
@@ -218,19 +218,19 @@ and for the rest of you,
 
 And that sped up launch a lot, **but it meant that we were editing your binaries on every launch**, and that's not great for all sorts of reasons, **not the least of which is security**.
 
-### dyld 2
+### dyld 2.0
 
 So then came **dyld 2**, and we shipped that as part of **macOS Tiger**.
 
 And **dyld 2** was a complete rewrite of dyld.
 
-**It had correct support for C++ initializer semantics**, so we slightly extended the **mach-o format** and we updated **dyld** so that we could get efficient C++ library support.
+- **It had correct support for C++ initializer semantics**, so we slightly extended the **mach-o format** and we updated **dyld** so that we could get efficient C++ library support.
 
-It also has a full native **dlopen** and **dlsym** implementation with correct semantics, at which point we deprecated the Legacy API's. They are still on macOS. They have never shipped on any of our other platforms.
+- It also has a full native **dlopen** and **dlsym** implementation with correct semantics, at which point we deprecated the Legacy API's. They are still on macOS. They have never shipped on any of our other platforms.
 
 #### Security issues: limited sanity checking
 
-**It was designed for speed** and because it was designed for speed, **it had limited sanity checking**. We did not have the malware environment we have today.
+**It was designed for speed and because it was designed for speed, it had limited sanity checking**. We did not have the malware environment we have today.
 
 It also has **security issues** because of that, that we had to go back and **retrofit** in a number of features to make it safer on today's platforms.
 
