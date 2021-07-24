@@ -22,13 +22,13 @@
       - [Security issues: limited sanity checking](#security-issues-limited-sanity-checking)
       - [Reduce the amount of prebinding](#reduce-the-amount-of-prebinding)
     - [dyld 2.x](#dyld-2x)
-      - [More architectures and platforms](#more-architectures-and-platforms)
-      - [Improved security](#improved-security)
-      - [Improved performance](#improved-performance)
+      - [1. More architectures and platforms](#1-more-architectures-and-platforms)
+      - [2. Improved security](#2-improved-security)
+      - [3. Improved performance](#3-improved-performance)
       - [Shared Cache](#shared-cache)
-        - [Rearranges binaries to improve load speed](#rearranges-binaries-to-improve-load-speed)
-        - [Pre-links dylibs](#pre-links-dylibs)
-        - [Pre-builds data structures used by dyld and ObjC](#pre-builds-data-structures-used-by-dyld-and-objc)
+        - [1. Rearranges binaries to improve load speed](#1-rearranges-binaries-to-improve-load-speed)
+        - [2. Pre-links dylibs](#2-pre-links-dylibs)
+        - [3. Pre-builds data structures used by dyld and ObjC](#3-pre-builds-data-structures-used-by-dyld-and-objc)
     - [dyld 3](#dyld-3)
       - [Performance](#performance)
       - [Security](#security)
@@ -248,14 +248,14 @@ Nowadays it is used for all the optimizations, but that was the impetus.
 
 So we shipped dyld 2 back then and we've done a number of improvements over the years, significant improvements.
 
-#### More architectures and platforms
+#### 1. More architectures and platforms
 
 First off, we've added a ton of more architectures and platforms.
 
 - Since dyld 2 shipped on **PowerPC**, we've added **x86, x86_64, arm, arm64**, and a number of subvariants of those.
 - We've also shipped **iOS, tvOS, and watchOS**, all of which required significant new work in dyld.
 
-#### Improved security
+#### 2. Improved security
 
 We've improved **security** in a number of ways.
 
@@ -263,7 +263,7 @@ We've improved **security** in a number of ways.
 - we added some for **ASLR**, which is a technology **Address Space Layout Randomization**, which means that every time you loaded the libraries it may be at a different address. If you want more details on that, last year's talk where Nick went into extreme detail on how we launch an app, goes into that.
 - And finally, we added a significant **bounds checking** to a number of things in the **mach-o header** so that you couldn't do certain types of attach with malformed binaries.
 
-#### Improved performance
+#### 3. Improved performance
 
 Finally, we improved performance, and because we improved performance, we could **get rid of prebinding and replace it with something called the shared cache**.
 
@@ -277,17 +277,17 @@ Well, it was introduced in **iOS 3.1** and **macOS Snow Leopard**, and **it comp
 
 And because we merged them into a single file, we can do certain types of optimizations.
 
-##### Rearranges binaries to improve load speed
+##### 1. Rearranges binaries to improve load speed
 
 We can **rearrange** all of their **text segments** and all of their **data segments** and **rewrite** their entire **symbol tables** to **reduce the size** and to make it so we need to **mount fewer regions in each process**.
 
-##### Pre-links dylibs
+##### 2. Pre-links dylibs
 
 - It also allows us to **pack binary segments** and save a lot of RAM. It effectively is a **prelinker** for the dylibs.
   - And while I'm not going to go into any particular optimizations here, the RAM savings are substantial.
   - On an average iOS system, this is the difference in about **500 megs to a gigabyte of RAM at runtime**.
 
-##### Pre-builds data structures used by dyld and ObjC
+##### 3. Pre-builds data structures used by dyld and ObjC
 
 It also **prebuilds data structures that dyld and ObjC are going to use at runtime so that we don't have to do it on launch. And again, that saves more RAM and a lot of time.**
 
