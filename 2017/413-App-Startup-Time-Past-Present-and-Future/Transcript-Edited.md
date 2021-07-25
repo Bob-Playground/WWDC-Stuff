@@ -26,9 +26,11 @@
       - [2. Improved security](#2-improved-security)
       - [3. Improved performance](#3-improved-performance)
     - [Shared Cache](#shared-cache)
-      - [1. Rearranges binaries to improve load speed](#1-rearranges-binaries-to-improve-load-speed)
-      - [2. Pre-links dylibs](#2-pre-links-dylibs)
-      - [3. Pre-builds data structures used by dyld and ObjC](#3-pre-builds-data-structures-used-by-dyld-and-objc)
+      - [Optimize](#optimize)
+        - [1. Rearranges binaries to improve load speed](#1-rearranges-binaries-to-improve-load-speed)
+        - [2. Pre-links dylibs](#2-pre-links-dylibs)
+        - [3. Pre-builds data structures used by dyld and ObjC](#3-pre-builds-data-structures-used-by-dyld-and-objc)
+      - [Source](#source)
     - [dyld 3](#dyld-3)
       - [Performance](#performance)
       - [Security](#security)
@@ -39,6 +41,9 @@
     - [Perform symbol lookups](#perform-symbol-lookups)
     - [Bind and rebase](#bind-and-rebase)
     - [Run initializers](#run-initializers)
+  - [How to move dyld out of process](#how-to-move-dyld-out-of-process)
+    - [security sensitive components](#security-sensitive-components)
+    - [cache-able parts](#cache-able-parts)
   - [`dyld 3` is three components](#dyld-3-is-three-components)
     - [`dyld 3` is an out-of-process mach-o parser](#dyld-3-is-an-out-of-process-mach-o-parser)
     - [`dyld 3` is a small in-process engine](#dyld-3-is-a-small-in-process-engine)
@@ -277,19 +282,23 @@ Well, it was introduced in **iOS 3.1** and **macOS Snow Leopard**, and **it comp
 
 And because we merged them into a single file, we can do certain types of optimizations.
 
-#### 1. Rearranges binaries to improve load speed
+#### Optimize
+
+##### 1. Rearranges binaries to improve load speed
 
 We can **rearrange** all of their **text segments** and all of their **data segments** and **rewrite** their entire **symbol tables** to **reduce the size** and to make it so we need to **mount fewer regions in each process**.
 
-#### 2. Pre-links dylibs
+##### 2. Pre-links dylibs
 
 - It also allows us to **pack binary segments** and save a lot of RAM. It effectively is a **prelinker** for the dylibs.
   - And while I'm not going to go into any particular optimizations here, the RAM savings are substantial.
   - On an average iOS system, this is the difference in about **500 megs to a gigabyte of RAM at runtime**.
 
-#### 3. Pre-builds data structures used by dyld and ObjC
+##### 3. Pre-builds data structures used by dyld and ObjC
 
 It also **prebuilds data structures that dyld and ObjC are going to use at runtime so that we don't have to do it on launch. And again, that saves more RAM and a lot of time.**
+
+#### Source
 
 - It's **built locally on macOS**, so when you see *optimizing system performance*, we are running *update dyld shared cache*, among things that happen,
 - **but on all of our other platforms we actually build it at Apple and ship it to you**.
@@ -362,17 +371,21 @@ Then we do what's called **binding and rebasing**, which is where we **copy thos
 
 And then **finally**, we can **run all of your initializers**, which is what I showed the tooling for earlier, and **at that point we're ready to call your main in launch**, and that's a lot of work.
 
----
+## How to move dyld out of process
 
 So how can we make this faster and how can we move it out of process?
+
+### security sensitive components
 
 Well, first off we identify the security sensitive components.
 
 And from our perspective the **biggest ones** of those are **parsing mach-o headers and finding dependencies**,
 
-because malformed **mach-o headers allow people to do certain attacks** and **your applications may use @rpaths, which are search paths, and by malforming those or inserting libraries in the right places, people can subvert applications**.
+because malformed **mach-o headers allow people to do certain attacks** and **your applications may use @rpaths, which are search paths, and by malforming those or inserting libraries in the right places, people can subvert applications**. So we do all of that out of process in the daemon,
 
-**So we do all of that out of process in the daemon, and then we identify the expensive parts of it, which are cache-able, and those are the symbol lookups.**
+### cache-able parts
+
+**and then we identify the expensive parts of it, which are cache-able, and those are the symbol lookups.**
 
 **Because in a given library, unless you perform the software update or change the library on disk, the symbols will always be at the same offset in that library.**
 
