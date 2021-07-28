@@ -567,7 +567,7 @@ Again, only use that in your test builds.
 
 **Additionally**, we might have to **RPC out to the daemon**（Remote Procedure Call？远程过程调用？）, depending on how complicated it is.
 
-So we're working on some better alternatives. We don't have those yet. But we also need to hear about your use cases to make sure we're designing something that will work for you. So please, again, they're not going away, but they will be slower and we want your feedback.
+So we're working on some better alternatives. We don't have those yet. But we also need to hear about your use cases to make sure we're designing something that will work for you. So please, again, **they're not going away, but they will be slower** and we want your feedback.
 
 ### dlclose
 
