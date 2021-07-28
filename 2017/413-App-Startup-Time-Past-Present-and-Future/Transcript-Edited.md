@@ -36,8 +36,8 @@
       - [Security](#security)
       - [Testability and Reliability](#testability-and-reliability)
   - [How `dyld 2` launches an app](#how-dyld-2-launches-an-app)
-    - [Parse Mach-O Headers & Find Dependencies](#parse-mach-o-headers--find-dependencies)
-    - [Map Mach-O files](#map-mach-o-files)
+    - [Parse mach-o headers & Find dependencies](#parse-mach-o-headers--find-dependencies)
+    - [Map mach-o files](#map-mach-o-files)
     - [Perform symbol lookups](#perform-symbol-lookups)
     - [Bind and rebase](#bind-and-rebase)
     - [Run initializers](#run-initializers)
@@ -58,6 +58,9 @@
     - [Unaligned pointers](#unaligned-pointers)
       - [Demo: Unaligned pointers](#demo-unaligned-pointers)
     - [Eager symbol resolution](#eager-symbol-resolution)
+      - [dyld 2 performs lazy symbol resolution](#dyld-2-performs-lazy-symbol-resolution)
+      - [dyld 3 performs eager symbol resolution](#dyld-3-performs-eager-symbol-resolution)
+      - [The compatibility mode of dyld 3](#the-compatibility-mode-of-dyld-3)
       - [Linker Flag: _bind_at_load](#linker-flag-_bind_at_load)
     - [dlopen, dlsym and dladdr](#dlopen-dlsym-and-dladdr)
     - [dlclose](#dlclose)
@@ -351,11 +354,11 @@ And again, we went into this in much more detail in last year's talk, **Optimizi
 
 So first off we have **dyld 2** and your app starts launching.
 
-### Parse Mach-O Headers & Find Dependencies
+### Parse mach-o headers & Find dependencies
 
 So we have to parse your **mach-o**, and as we **parse your mach-o** we find what libraries you need, and then they may have other libraries that they need, and we do that **recursively** until we have a complete graph of all your **dylibs**, and for an average graph of application on iOS that's **between 300 to 600 dylibs**, so it's a lot of them and a lot of work.
 
-### Map Mach-O files
+### Map mach-o files
 
 We then map in all the mach-o files so we get them into your address space.
 
@@ -393,7 +396,9 @@ So we've identified these. Let me show you how they look in dyld 3.
 
 ## `dyld 3` is three components
 
-**So we moved those all up front, at which point we write a closure to disk.** So as I said earlier, **a launch closure is everything you need to launch the app**. And then we move it -- we can use that in process later. So **dyld 3 is three components**.
+**So we moved those all up front, at which point we write a closure to disk.** So as I said earlier, **a launch closure is everything you need to launch the app**. And then we move it -- we can use that in process later.
+
+So **dyld 3 is three components**.
 
 - It's **an out-of-process mach-o parser and compiler**.
 - It's **an in-process engine that runs launch closures**,
@@ -437,9 +442,9 @@ So what does that mean?
 
 #### System app
 
-Well, **system app closures we're just building directly into the shared cache**. We already have this tool that runs and analyzes every mach-o in the system.
+Well, **system app closures we're just building directly into the shared cache**.
 
-We can just put them directly into the shared cache, so it's mapped in with all the dylibs to start with. We don't even need to open another file.
+We already have this tool that runs and analyzes every mach-o in the system. We can just put them directly into the shared cache, so it's mapped in with all the dylibs to start with. We don't even need to open another file.
 
 #### Third-party app
 
@@ -519,11 +524,17 @@ So next off, **eager symbol resolution**.
 
 So what do I mean by this?
 
+#### dyld 2 performs lazy symbol resolution
+
 So **dyld 2 performs what we call lazy symbol resolution**.
 
 So I said up front that dyld has to load all those symbols and that's something expensive that we want to cache. It's actually too expensive to run up front on existing applications. It would take too long.
 
-So instead, we use a mechanism we call **lazy symbol resolution**, where, by default, the function pointer in your binary for, let's say, **printf**, doesn't point to printf. **By default it points to a function in dyld that returns a function pointer to printf.** And so when we launch, you'll call printf, it goes into dyld, we return what we call the printf and call it on your behalf the first time and then on the second time you go straight to printf.
+So instead, we use a mechanism we call **lazy symbol resolution**, where, by default, the function pointer in your binary for, let's say, **printf**, doesn't point to printf. **By default it points to a function in dyld that returns a function pointer to printf.**
+
+And so when we launch, you'll call printf, it goes into dyld, we return what we call the printf and call it on your behalf the first time and then on the second time you go straight to printf.
+
+#### dyld 3 performs eager symbol resolution
 
 **But since we are caching and calculating all these symbols up front now, there's no additional cost at app launch time to find them all up front**, so we are going to do that.
 
@@ -531,6 +542,8 @@ Now, having said that, missing symbols behave differently when you do this.
 
 - **On existing lazy systems**, if you are missing a symbol, the first call -- **you'll launch correctly and the first time you call that symbol, you'll crash**.
 - **With eager symbols you'll crash up front**.
+
+#### The compatibility mode of dyld 3
 
 So we do have a compatibility mode for this, and the way we're going to do that is that we are going to **just have a symbol inside dyld 3 that automatically crashes, and if we can't find your symbol, we will bind that symbol, so on first call you will crash.**
 
