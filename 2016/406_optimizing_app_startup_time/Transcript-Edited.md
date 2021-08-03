@@ -14,7 +14,8 @@
     - [What can you do with VM](#what-can-you-do-with-vm)
     - [File backed mapping](#file-backed-mapping)
     - [Copy on write](#copy-on-write)
-  - [From exec to main](#from-exec-to-main)
+    - [Page permissions](#page-permissions)
+  - [From exec() to main()](#from-exec-to-main)
     - [positioned independent code](#positioned-independent-code)
   - [Practical tips](#practical-tips)
     - [warm launch & cold launch](#warm-launch--cold-launch)
@@ -116,21 +117,25 @@ So the problem with, that virtual memory solves, is how do you manage all your p
 
 So they added a little of indirection. **Every process is a logical address space which gets mapped to some physical page of RAM.**
 
-Now **this mapping does not have to be one to one, you could have logical addresses that go to no physical RAM and you can have multiple logical addresses that go to the same physical RAM**. This offered lots of opportunities here.
+Now **this mapping does not have to be one to one**,
+
+- you could have logical addresses that go to no physical RAM and
+- you can have multiple logical addresses that go to the same physical RAM.
+
+This offered lots of opportunities here.
 
 ### What can you do with VM
 
 So what can you do with VM?
 
-Well first, **if you have a logical address that does not map to any physical RAM, when you access that address in your process, a page fault happens**. At that point the kernel stops that thread and tries to figure out what needs to happen.
-
-The next thing is **if you have two processes, with different logical addresses, mapping to the same physical page, those two processes are now sharing the same bit of RAM. You now have sharing between processes.**
+- Well first, **if you have a logical address that does not map to any physical RAM, when you access that address in your process, a page fault happens**. At that point the kernel stops that thread and tries to figure out what needs to happen.
+- The next thing is **if you have two processes, with different logical addresses, mapping to the same physical page, those two processes are now sharing the same bit of RAM. You now have sharing between processes.**
 
 ### File backed mapping
 
 Another interesting feature is **file backed mapping**.
 
-Rather than actually read an entire file into RAM you can tell the VM system through the **mmap** call, the I want this slice of this file mapped to this address range in my process.
+Rather than actually read an entire file into RAM you can tell the VM system through the **mmap** call, then I want this slice of this file mapped to this address range in my process.
 
 So why would you do that?
 
@@ -157,15 +162,17 @@ Which brings us to **clean versus dirty pages**.
 So that copy is considered a dirty page.
 
 - A dirty page is something that contains process specific information.
-- A clean page is something that the kernel could regenerate later if needed such as rereading from disc.
+- A clean page is something that the kernel could regenerate later if needed such as rereading from disk.
 
 So dirty pages are much more expensive than clean pages.
 
----
+### Page permissions
 
 And the last thing is the permission boundaries are on page boundaries.
 
 By that I mean the permissions are you can mark a page readable, writable, or executable, or any combination of those.
+
+---
 
 So let's put this all together, I talked about the Mach-O format, something about virtual memory, let's see how they play together.
 
@@ -173,7 +180,7 @@ Now I'm going to skip ahead and talk a little, how the dyld operates and in a fe
 
 So we have a dylib file here, and **rather than reading it in memory we've mapped it in memory**. So, in memory this dylib would have taken eight pages.
 
-The savings, why it's different is these **ZeroFills**. So it turns out most global variables are zero initially. So the static makes an optimization that moves all the zero global variables to the end, and then takes up no disc space. And instead, we use the VM feature to tell the VM the first time this page is accessed, fill it with zero's. So it requires no reading.
+The savings, why it's different is these **ZeroFills**. So it turns out most global variables are zero initially. So the static makes an optimization that moves all the zero global variables to the end, and then takes up no disk space. And instead, we use the VM feature to tell the VM the first time this page is accessed, fill it with zero's. So it requires no reading.
 
 ---
 
@@ -217,7 +224,7 @@ So instead what actually happens at build time, is **every single page of your M
 
 This allows each page to be validated that it hasn't been **tampered** with and was owned by you at page in time.
 
-## From exec to main
+## From exec() to main()
 
 Okay, so we finished the crash course, now I'm going to walk you from **exec()** to **main()**.
 
