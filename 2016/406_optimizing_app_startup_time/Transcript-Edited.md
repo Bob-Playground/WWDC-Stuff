@@ -15,6 +15,7 @@
     - [File backed mapping](#file-backed-mapping)
     - [Copy on write](#copy-on-write)
     - [Page permissions](#page-permissions)
+  - [Mach-O Image Loading](#mach-o-image-loading)
   - [From exec() to main()](#from-exec-to-main)
     - [positioned independent code](#positioned-independent-code)
   - [Practical tips](#practical-tips)
@@ -93,7 +94,7 @@ You may have also heard of **universal files**, what are they?
 
 Well suppose you build an iOS app, for a **64 bit**, and now you have this **Mach-O** file, so what happens the next code when you say you also want to build it for **32 bit** devices?
 
-When you rebuild, Xcode will build **another separate Mach-O file**, this one built for **32 bits**, RB7.
+When you rebuild, Xcode will build **another separate Mach-O file**, this one built for **32 bits**, armv7s.
 
 And then **those two files are merged into a third file, called the Mach-O universal file**. And that has a **header** at the start, and **all the header has a list of all the architectures and what their offsets are in the file**. And that header is also **one page in size**.
 
@@ -172,7 +173,7 @@ And the last thing is the permission boundaries are on page boundaries.
 
 By that I mean the permissions are you can mark a page readable, writable, or executable, or any combination of those.
 
----
+## Mach-O Image Loading
 
 So let's put this all together, I talked about the Mach-O format, something about virtual memory, let's see how they play together.
 
