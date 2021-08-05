@@ -11,10 +11,13 @@
     - [Universal files](#universal-files)
   - [Virtual memory](#virtual-memory)
     - [What is virtual memory](#what-is-virtual-memory)
-    - [What can you do with VM](#what-can-you-do-with-vm)
-    - [File backed mapping](#file-backed-mapping)
-    - [Copy on write](#copy-on-write)
-    - [Page permissions](#page-permissions)
+    - [Virtual memory's feature](#virtual-memorys-feature)
+      - [Page fault](#page-fault)
+      - [Share Physical RAM](#share-physical-ram)
+      - [File backed mapping](#file-backed-mapping)
+      - [Copy on write](#copy-on-write)
+      - [Clean versus dirty pages](#clean-versus-dirty-pages)
+      - [Page permissions](#page-permissions)
   - [Mach-O Image Loading](#mach-o-image-loading)
   - [From exec() to main()](#from-exec-to-main)
     - [positioned independent code](#positioned-independent-code)
@@ -125,14 +128,19 @@ Now **this mapping does not have to be one to one**,
 
 This offered lots of opportunities here.
 
-### What can you do with VM
+### Virtual memory's feature
 
 So what can you do with VM?
 
-- Well first, **if you have a logical address that does not map to any physical RAM, when you access that address in your process, a page fault happens**. At that point the kernel stops that thread and tries to figure out what needs to happen.
-- The next thing is **if you have two processes, with different logical addresses, mapping to the same physical page, those two processes are now sharing the same bit of RAM. You now have sharing between processes.**
+#### Page fault
 
-### File backed mapping
+Well first, **if you have a logical address that does not map to any physical RAM, when you access that address in your process, a page fault happens**. At that point the kernel stops that thread and tries to figure out what needs to happen.
+
+#### Share Physical RAM
+
+The next thing is **if you have two processes, with different logical addresses, mapping to the same physical page, those two processes are now sharing the same bit of RAM. You now have sharing between processes.**
+
+#### File backed mapping
 
 Another interesting feature is **file backed mapping**.
 
@@ -144,7 +152,7 @@ Well rather than having to read the entire file, by having that mapping set up, 
 
 Now we can put all these features together, and what I told you about Mach-O you now realize that the `__TEXT` segment of any of that dylib or image can be mapped into multiple processes, it will be read lazily, and all those pages can be shared between those processes.
 
-### Copy on write
+#### Copy on write
 
 What about the `__DATA` segment?
 
@@ -158,6 +166,8 @@ But **as soon as one process actually tries to write** to its `__DATA` page, the
 
 **The copy and write causes the kernel to make a copy of that page into another physical RAM and redirect the mapping to go to that. So that one process now has its own copy of that page.**
 
+#### Clean versus dirty pages
+
 Which brings us to **clean versus dirty pages**.
 
 So that copy is considered a dirty page.
@@ -167,7 +177,7 @@ So that copy is considered a dirty page.
 
 So dirty pages are much more expensive than clean pages.
 
-### Page permissions
+#### Page permissions
 
 And the last thing is the permission boundaries are on page boundaries.
 
