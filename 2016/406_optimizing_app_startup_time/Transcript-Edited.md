@@ -19,6 +19,9 @@
       - [Clean versus dirty pages](#clean-versus-dirty-pages)
       - [Page permissions](#page-permissions)
   - [Mach-O Image Loading](#mach-o-image-loading)
+    - [Example: First progress](#example-first-progress)
+    - [Example: Second progress](#example-second-progress)
+    - [Security](#security)
   - [From exec() to main()](#from-exec-to-main)
     - [positioned independent code](#positioned-independent-code)
   - [Practical tips](#practical-tips)
@@ -148,9 +151,9 @@ Rather than actually read an entire file into RAM you can tell the VM system thr
 
 So why would you do that?
 
-Well rather than having to read the entire file, by having that mapping set up, as you first access those different addresses, as if you had read it in memory, each time you access an address that hasn't been accessed before it will cause a page fault, the kernel will read just that one page. And that gives you lazy reading of your file.
+Well rather than having to read the entire file, by having that mapping set up, as you first access those different addresses, as if you had read it in memory, each time you access an address that hasn't been accessed before it will cause a page fault, the kernel will read just that one page. And that gives you **lazy reading of your file**.
 
-Now we can put all these features together, and what I told you about Mach-O you now realize that the `__TEXT` segment of any of that dylib or image can be mapped into multiple processes, it will be read lazily, and all those pages can be shared between those processes.
+Now we can put all these features together, and what I told you about `Mach-O` you now realize that **the `__TEXT` segment of any of that dylib or image can be mapped into multiple processes, it will be read lazily, and all those pages can be shared between those processes**.
 
 #### Copy on write
 
@@ -191,9 +194,9 @@ Now I'm going to skip ahead and talk a little, how the dyld operates and in a fe
 
 So we have a dylib file here, and **rather than reading it in memory we've mapped it in memory**. So, in memory this dylib would have taken eight pages.
 
-The savings, why it's different is these **ZeroFills**. So it turns out most global variables are zero initially. So the static makes an optimization that moves all the zero global variables to the end, and then takes up no disk space. And instead, we use the VM feature to tell the VM the first time this page is accessed, fill it with zero's. So it requires no reading.
+The savings, why it's different is these **ZeroFills**. So it turns out most global variables are zero initially. So the static (linker) makes an optimization that moves all the zero global variables to the end, and then takes up no disk space. And instead, we use the VM feature to tell the VM the first time this page is accessed, fill it with zero's. So it requires no reading.
 
----
+### Example: First progress
 
 So the first thing **dyld** has to do is it has to look at the **Mach-O header**, in memory, in this process. So it'll be looking at the top box in memory, when that happens, there's nothing there, there's no mapping to a physical page so a page fault happens. At that point the kernel realizes this is mapped to a file, so it'll read the first page of the file, place it into physical RAM, set the mapping to it.
 
@@ -207,7 +210,7 @@ So, the same thing happens, dyld is now, reads some data from the `__DATA` page,
 
 So what would have been 8 pages of dirty RAM if I just malloced eight pages and then then read the stuff into it I would have eight pages of dirty RAM. But now I only have one page of dirty RAM and two clean pages.
 
----
+### Example: Second progress
 
 So what's going to happen when the second process loads the same dylib. So in the second process dyld goes through the same steps.
 
@@ -223,7 +226,7 @@ Now the last step is the `__LINKEDIT` is only needed while dyld is doing its ope
 
 So the result is now we have two processes sharing these dylibs, each one would have been eight pages, or a total of 16 dirty pages, but now we only have two dirty pages and one clean, shared page.
 
----
+### Security
 
 Two other minor things I want to go over is that how security effects dyld, these two big security things that have impacted dyld.
 
