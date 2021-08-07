@@ -23,7 +23,20 @@
     - [Example: Second progress](#example-second-progress)
     - [Security](#security)
   - [From exec() to main()](#from-exec-to-main)
-    - [positioned independent code](#positioned-independent-code)
+    - [Kernel loads APP](#kernel-loads-app)
+    - [Kernel loads dyld](#kernel-loads-dyld)
+    - [dyld steps](#dyld-steps)
+      - [Map all the dependent dylibs](#map-all-the-dependent-dylibs)
+      - [Fix-ups](#fix-ups)
+        - [Positioned independent code](#positioned-independent-code)
+        - [Rebasing & Binding](#rebasing--binding)
+          - [Rebasing](#rebasing)
+          - [Binding](#binding)
+      - [ObjC prepare images](#objc-prepare-images)
+      - [initializers](#initializers)
+        - [Initializers order](#initializers-order)
+      - [main()](#main)
+      - [Summary](#summary)
   - [Practical tips](#practical-tips)
     - [warm launch & cold launch](#warm-launch--cold-launch)
     - [DYLD_PRINT_STATISTICS](#dyld_print_statistics)
@@ -214,9 +227,11 @@ So what would have been 8 pages of dirty RAM if I just malloced eight pages and 
 
 So what's going to happen when the second process loads the same dylib. So in the second process dyld goes through the same steps.
 
-First it looks at the **Mach-O header**, but this time the kernel says, ah, I already have that page in RAM somewhere so it simply redirects the mapping to reuse that page no IO was done.
+First it looks at the **Mach-O header**, but this time the kernel says, ah, I already have that page in RAM somewhere so it simply redirects the mapping to reuse that page no **IO** was done.
 
-The same think with `__LINKEDIT`, it's much faster. Now we get to the `__DATA` page, at this point the kernel has to look to see if the `__DATA` page, the clean copy already still exists in RAM somewhere, and if it does it can reuse it, if not, it has to reread it.
+The same think with `__LINKEDIT`, it's much faster.
+
+Now we get to the `__DATA` page, at this point the kernel has to look to see if the `__DATA` page, the clean copy already still exists in RAM somewhere, and if it does it can reuse it, if not, it has to reread it.
 
 And now in this process, dyld will dirty the RAM.
 
@@ -242,6 +257,8 @@ This allows each page to be validated that it hasn't been **tampered** with and 
 
 Okay, so we finished the crash course, now I'm going to walk you from **exec()** to **main()**.
 
+### Kernel loads APP
+
 So what is **exec()**?
 
 `exec()` is a **system call**.
@@ -261,7 +278,7 @@ Now, life was easy for the first couple decades, of Unix because all I do is map
 
 And then shared libraries were invented.
 
----
+### Kernel loads dyld
 
 **So who loads dylibs?**
 
@@ -275,9 +292,11 @@ On other Unix's you may know it as `LD.SO`.
 
 So **now dyld's running in process and its job is to load all the dylibs that you depend on and get everything prepared and running**.
 
----
+### dyld steps
 
 So let's walk through those steps. This is a whole bunch of steps and it has sort of a timeline along the bottom here, as we walk through these we'll walk through the timeline.
+
+#### Map all the dependent dylibs
 
 So first thing, is dyld has to **map all the dependent dylibs**.
 
@@ -297,23 +316,23 @@ Luckily most of those are OS dylibs, and we do a lot of work when building the O
 
 So OS dylibs load very, very quickly.
 
----
+#### Fix-ups
 
 So now we've loaded all the dylibs, but they're all sitting in their floating independent of each other, and now we actually have to bind them together.
 
 That's called **fix-ups**.
 
+##### Positioned independent code
+
 But one thing about fix-ups is we've learned, **because of code signing we can't actually alter instructions**.
 
 So how does one dylib call into another dylib if you can't change the instructions of how it calls?
-
-### positioned independent code
 
 Well, we call back our old friend, and we add a lot of old indirection. So our **code-gen**, is called **dynamic PIC**. It's **positioned independent code**, meaning the code can be loaded into the address and is dynamic, meaning things are, addressed indirectly.
 
 What that means is to call for one thing to another, the co-gen actually creates a pointer in the `__DATA` segment and that pointer points to what you want to call. The code loads that pointer and jumps to the pointer. So all dyld is doing is fixing up pointers and data.
 
----
+##### Rebasing & Binding
 
 Now there's two main categories of fix-ups, **rebasing and binding**, so what's the difference?
 
@@ -324,7 +343,7 @@ And they each need to be fixed up differently, so I'll go through the steps.
 
 But first, if you're curious, there's a command, dyld info with a bunch of options on it. You can run this on any binary and you'll see all the fix-ups that dyld will have to be doing for that binary to prepare it.
 
----
+###### Rebasing
 
 So rebasing.
 
@@ -346,7 +365,7 @@ So rebasing can sometimes be expensive because of all the IO.
 
 But one trick we do is we do it sequentially and from the kernel's point of view, it sees data faults happen sequentially. And when it sees that, the kernel, is reading ahead for us which makes the IO less costly.
 
----
+###### Binding
 
 So next is **binding**, binding is for **pointers that point outside your dylib**.
 
@@ -358,7 +377,9 @@ So at run time, dyld needs to actually **find the implementation of that symbol*
 
 So this is way more computationally complex than rebasing is. But there's very little IO because rebasing has done most of the IO already.
 
-Next, so ObjC has a bunch of `__DATA` structures, class `__DATA` structure which is a pointer to its methods and a pointer to a super gloss and so forth.
+#### ObjC prepare images
+
+Next, so ObjC has a bunch of data structures, class data structure which is a pointer to its methods and a pointer to a super gloss and so forth.
 
 Almost all those are fixed up, via rebasing or binding. But there's a few extra things that ObjC runtime requires.
 
@@ -372,19 +393,19 @@ Next, in **ObjC** you can define **categories** which change the methods of anot
 
 And lastly, **ObjC** is based on **selectors being unique** so we need unique selectors.
 
----
+#### initializers
 
-So now the work that we've done all the `__DATA` fix-ups, now we can do all the `__DATA` fix-ups that can be basically described statically.
+So now the work that we've done all the DATA fix-ups, now we can do all the DATA fix-ups that can be basically described statically.
 
-So now's our chance to do dynamic `__DATA` fix ups.
+So now's our chance to do dynamic DATA fix ups.
 
 So in **C++**, you can have an initializer, you can say equals whatever expression you want. That arbitrary expression, at this time needs to be run and it's run at this point now.
 
-So the **C++** compiler generates, initiliazers for these arbitrary `__DATA` initialization.
+So the **C++** compiler generates, initiliazers for these arbitrary DATA initialization.
 
 In **ObjC**, there's something called the `+load` method. Now the `+load` method is **deprecated, we recommend that you don't use it**. We recommend you use a `+initialize`. But if you have one, it's run at this point.
 
----
+##### Initializers order
 
 So, now I have this big graph, we have your **main executable** top, **all the dylibs** depend on, this huge graph, we have to run **initializers**.
 
@@ -394,7 +415,11 @@ Well, we run them bottom up. And the reason is, when an initialize is run it may
 
 So by running the initializers from the bottom all the way up the app class you're safe to call into something you depend on.
 
+#### main()
+
 So once all initiliazers are done, now we actually finally get to call the `main()` dyld program.
+
+#### Summary
 
 So you survived this theory part, you now all are experts on how processes start, you now know that **dyld is a helper program**, it loads all dependent libraries, fixing up all the `__DATA` pages, runs initializers and then jumps to `main()`.
 
