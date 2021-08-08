@@ -290,9 +290,9 @@ On other Unix's you may know it as `LD.SO`.
 
 **Sets the PC into dyld and let's dyld finish launching the process.**
 
-So **now dyld's running in process and its job is to load all the dylibs that you depend on and get everything prepared and running**.
-
 ### dyld steps
+
+So **now dyld's running in process and its job is to load all the dylibs that you depend on and get everything prepared and running**.
 
 So let's walk through those steps. This is a whole bunch of steps and it has sort of a timeline along the bottom here, as we walk through these we'll walk through the timeline.
 
@@ -304,9 +304,17 @@ Well what are the dependent dylibs?
 
 To find those **it first reads the header of the main executable that the kernel already mapped in** that header is a list of all the dependent libraries. So it's got to parse that out. Then it has to find each dylib.
 
-And once it's found each dylib it has to open and run the start of each file, it needs to make sure that it is a Mach-O file, **validate it, find its code signature, register that code signature to the kernel**. And then it can actually **call mmap at each segment in that dylib**.
+And once it's found each dylib it has to open and run the start of each file, it needs to make sure that it is a Mach-O file, **validate it, find its code signature, register that code signature to the kernel**.
 
-Okay, so that's pretty simple. Your app knows about the kernel dyld, dyld then says oh this app depends on A and B dylib, load the two of those, we're done. Well, it gets more complicated, because A.dylib and B.dylib themselves could depend upon the dylibs.
+And then it can actually **call `mmap()` at each segment in that dylib**.
+
+---
+
+Okay, so that's pretty simple.
+
+Your app knows about the kernel dyld, dyld then says oh this app depends on A and B dylib, load the two of those, we're done.
+
+Well, it gets more complicated, because **A.dylib** and **B.dylib** themselves could depend upon the dylibs.
 
 So dyld has to do the same thing over again for each of those dylibs, and each of the dylibs may depend on something that's already loaded or something new so it has to determine whether it's already been loaded or not, and if not, it needs to load it. So, this continues on and on.
 
@@ -328,9 +336,11 @@ But one thing about fix-ups is we've learned, **because of code signing we can't
 
 So how does one dylib call into another dylib if you can't change the instructions of how it calls?
 
-Well, we call back our old friend, and we add a lot of old indirection. So our **code-gen**, is called **dynamic PIC**. It's **positioned independent code**, meaning the code can be loaded into the address and is dynamic, meaning things are, addressed indirectly.
+Well, we call back our old friend, and we add a lot of old **indirection**.
 
-What that means is to call for one thing to another, the co-gen actually creates a pointer in the `__DATA` segment and that pointer points to what you want to call. The code loads that pointer and jumps to the pointer. So all dyld is doing is fixing up pointers and data.
+So our **code-gen**, is called **dynamic PIC**. It's **positioned independent code**, meaning the code can be loaded into the address and is dynamic, meaning things are, addressed indirectly.
+
+What that means is to call for one thing to another, the **code-gen** actually creates a pointer in the `__DATA` segment and that pointer points to what you want to call. The code loads that pointer and jumps to the pointer. So all dyld is doing is fixing up pointers and data.
 
 ##### Rebasing & Binding
 
@@ -357,11 +367,11 @@ So the concept is very simple, read, add, write, read, add, write.
 
 But where are those data pointers?
 
-Where those pointers are in your segment, are encoded in the `__LINKEDIT` segment.
+Well, those pointers are in your segment, are encoded in the `__LINKEDIT` segment.
 
-Now, at this point, all we've had is everything mapped in, so when we start doing rebasing, we're actually causing page faults to page in all the `__DATA` pages. And **then we causing copy and writes as we're changing them**.
+Now, at this point, all we've had is everything mapped in, so **when we start doing rebasing, we're actually causing page faults to page in all the `__DATA` pages. And then we causing copy and writes as we're changing them**.
 
-So rebasing can sometimes be expensive because of all the IO.
+**So rebasing can sometimes be expensive because of all the `IO`.**
 
 But one trick we do is we do it sequentially and from the kernel's point of view, it sees data faults happen sequentially. And when it sees that, the kernel, is reading ahead for us which makes the IO less costly.
 
